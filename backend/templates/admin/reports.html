@@ -1,0 +1,240 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Reports - Eisenach App Admin{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<!-- Statistiken -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ report_stats.total }}</div>
+        <div class="stat-label">Reports gesamt</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ report_stats.pending }}</div>
+        <div class="stat-label">Offen</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ report_stats.resolved }}</div>
+        <div class="stat-label">Erledigt</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ report_stats.dismissed }}</div>
+        <div class="stat-label">Abgelehnt</div>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="card">
+    <div class="card-header">
+        <h3>Report-Management</h3>
+    </div>
+    <div class="card-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <a href="?status=all" class="btn {% if status_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Alle Reports
+            </a>
+            <a href="?status=pending" class="btn {% if status_filter == 'pending' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Offen ({{ report_stats.pending }})
+            </a>
+            <a href="?status=resolved" class="btn {% if status_filter == 'resolved' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Erledigt
+            </a>
+            <a href="?status=dismissed" class="btn {% if status_filter == 'dismissed' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Abgelehnt
+            </a>
+        </div>
+        
+        <p><strong>Angezeigt:</strong> {{ page_obj.object_list|length }} von {{ page_obj.paginator.count }} Reports</p>
+    </div>
+</div>
+
+<!-- Report-Liste -->
+{% if page_obj.object_list %}
+    {% for report in page_obj.object_list %}
+    <div class="card">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3>Report #{{ report.id }}</h3>
+                    <p><small>Gemeldet von {{ report.reporter.username }} am {{ report.created_at|date:"d.m.Y H:i" }}</small></p>
+                </div>
+                <div>
+                    {% if report.status == 'pending' %}
+                        <span class="badge badge-warning">Offen</span>
+                    {% elif report.status == 'resolved' %}
+                        <span class="badge badge-success">Erledigt</span>
+                    {% elif report.status == 'dismissed' %}
+                        <span class="badge badge-danger">Abgelehnt</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Report-Details -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    {% if report.reported_user %}
+                    <h4>Gemeldeter Nutzer</h4>
+                    <p><strong>Username:</strong> {{ report.reported_user.username }}</p>
+                    <p><strong>Alter:</strong> {{ report.reported_user.profile.age|default:'unbekannt' }}</p>
+                    <p><strong>ID:</strong> {{ report.reported_user.id }}</p>
+                    <p><strong>Registriert:</strong> {{ report.reported_user.date_joined|date:"d.m.Y" }}</p>
+                    {% endif %}
+                    
+                    {% if report.event %}
+                    <h4>Betroffenes Event</h4>
+                    <p><strong>Event:</strong> {{ report.event.title }}</p>
+                    <p><strong>Datum:</strong> {{ report.event.date|date:"d.m.Y H:i" }}</p>
+                    <p><strong>Ersteller:</strong> {{ report.event.created_by.username }}</p>
+                    <p><strong>Alter (Ersteller):</strong> {{ report.event.created_by.profile.age|default:'unbekannt' }}</p>
+                    {% endif %}
+
+                    {% if report.comment %}
+                    <h4>Betroffener Kommentar</h4>
+                    <p><strong>Autor:</strong> {{ report.comment.author.username }}</p>
+                    <p><strong>Alter (Autor):</strong> {{ report.comment.author.profile.age|default:'unbekannt' }}</p>
+                    <p><strong>Erstellt:</strong> {{ report.comment.created_at|date:"d.m.Y H:i" }}</p>
+                    <p><strong>Kommentar-Text:</strong></p>
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 4px solid #3498db; white-space: pre-wrap;">
+                        {{ report.comment.text|linebreaksbr }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <h4>Report-Details</h4>
+                    <p><strong>Kategorie:</strong> {{ report.get_reason_display }}</p>
+                    <p><strong>Status:</strong> {{ report.get_status_display }}</p>
+                    
+                    {% if report.resolved_at %}
+                        <p><strong>Bearbeitet am:</strong> {{ report.resolved_at|date:"d.m.Y H:i" }}</p>
+                        {% if report.admin_notes %}
+                            <p><strong>Admin-Notizen:</strong> {{ report.admin_notes }}</p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Beschreibung -->
+            <div style="margin-bottom: 20px;">
+                <h4>Beschreibung des Problems</h4>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #e74c3c;">
+                    {{ report.description|linebreaks }}
+                </div>
+            </div>
+            
+            <!-- Aktionen -->
+            {% if report.status == 'pending' %}
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h4>Aktionen</h4>
+                    </div>
+                    <div>
+                        <button onclick="resolveReport({{ report.id }})" class="btn btn-success">
+                            Als erledigt markieren
+                        </button>
+                        <button onclick="dismissReport({{ report.id }})" class="btn btn-warning">
+                            Report ablehnen
+                        </button>
+                        {% if report.comment %}
+                        <button onclick="deleteComment({{ report.comment.id }})" class="btn btn-danger">
+                            Kommentar löschen
+                        </button>
+                        {% endif %}
+                        {% if report.reported_user %}
+                        <button onclick="deleteUserCompletely({{ report.reported_user.id }}, '{{ report.reported_user.username }}')" class="btn btn-danger">
+                            Nutzer löschen
+                        </button>
+                        {% endif %}
+                        <a href="/admin-classic/api/userreport/{{ report.id }}/change/" class="btn btn-primary">
+                            Details bearbeiten
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px;">
+                <p style="color: #7f8c8d;">
+                    <strong>Status:</strong> Dieser Report wurde bereits bearbeitet.
+                    {% if report.resolved_at %}
+                        Bearbeitet am {{ report.resolved_at|date:"d.m.Y H:i" }}.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <div class="card-body">
+            <p>Keine Reports gefunden!</p>
+            {% if status_filter == 'pending' %}
+                <p>Alle Reports wurden bereits bearbeitet.</p>
+            {% else %}
+                <p>Versuchen Sie einen anderen Filter.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="card">
+    <div class="card-body">
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}" class="btn btn-primary">
+                    ← Vorherige
+                </a>
+            {% endif %}
+            
+            <span style="padding: 10px; color: #7f8c8d;">
+                Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}" class="btn btn-primary">
+                    Nächste →
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+<!-- CSRF Token für AJAX -->
+{% csrf_token %}
+<script>
+async function deleteComment(commentId) {
+  if (!confirm('Diesen Kommentar wirklich löschen?')) return;
+  try {
+    const res = await fetch(`/admin/api/delete-comment/${commentId}/`, { method: 'DELETE', headers: { 'X-CSRFToken': getCookie('csrftoken') } });
+    const data = await res.json();
+    alert(data.message || (data.success ? 'Kommentar gelöscht' : 'Fehler beim Löschen'));
+    if (data.success) {
+      location.reload();
+    }
+  } catch (e) {
+    alert('Fehler beim Löschen: ' + e);
+  }
+}
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+{% endblock %}

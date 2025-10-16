@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: eisenach_db
+      POSTGRES_USER: eisenach_user
+      POSTGRES_PASSWORD: eisenach_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgresql://eisenach_user:eisenach_password@db:5432/eisenach_db
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+  static_volume:

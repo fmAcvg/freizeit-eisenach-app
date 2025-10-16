@@ -1,0 +1,120 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Datenbank - Eisenach App Admin{% endblock %}
+{% block page_title %}Datenbank-Management{% endblock %}
+
+{% block content %}
+<!-- Datenbank-Übersicht -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ db_stats.total_events }}</div>
+        <div class="stat-label">Events</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ db_stats.published_events }}</div>
+        <div class="stat-label">Veröffentlicht</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ db_stats.total_users }}</div>
+        <div class="stat-label">Benutzer</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ db_stats.total_comments }}</div>
+        <div class="stat-label">Kommentare</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ db_stats.total_reports }}</div>
+        <div class="stat-label">Reports</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ db_stats.pending_reports }}</div>
+        <div class="stat-label">Offen</div>
+    </div>
+</div>
+
+<!-- Model-Übersicht -->
+<div class="card">
+    <div class="card-header">
+        <h3>Datenbank-Models</h3>
+    </div>
+    <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+            {% for model_data in models_data %}
+            <div style="border: 1px solid #e9ecef; border-radius: 6px; padding: 15px;">
+                <h4>{{ model_data.name }}</h4>
+                <p><strong>Einträge:</strong> {{ model_data.count }}</p>
+                
+                <a href="{{ model_data.url }}" class="btn btn-primary btn-sm">
+                    Verwalten
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Schnellzugriff auf wichtige Bereiche -->
+<div class="card">
+    <div class="card-header">
+        <h3>Schnellzugriff</h3>
+    </div>
+    <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <a href="/admin-classic/api/event/" class="btn btn-primary">
+                Events verwalten
+            </a>
+            <a href="/admin-classic/api/profile/" class="btn btn-primary">
+                Profile verwalten
+            </a>
+            <a href="/admin-classic/api/eventcomment/" class="btn btn-primary">
+                Kommentare verwalten
+            </a>
+            <a href="/admin-classic/api/userreport/" class="btn btn-primary">
+                Reports verwalten
+            </a>
+            <a href="/admin-classic/api/friendship/" class="btn btn-primary">
+                Freundschaften verwalten
+            </a>
+            <a href="/admin-classic/api/eventparticipant/" class="btn btn-primary">
+                Teilnahmen verwalten
+            </a>
+            <a href="/admin-classic/api/eventlike/" class="btn btn-primary">
+                Likes verwalten
+            </a>
+            <a href="/admin-classic/api/notification/" class="btn btn-primary">
+                Benachrichtigungen verwalten
+            </a>
+            <a href="/admin-classic/api/userrole/" class="btn btn-primary">
+                Rollen verwalten
+            </a>
+        </div>
+    </div>
+</div>
+
+
+<!-- Wichtige Links -->
+<div class="card">
+    <div class="card-header">
+        <h3>Wichtige Links</h3>
+    </div>
+    <div class="card-body">
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            <a href="/admin-classic/" class="btn btn-secondary">
+                Django Admin (Standard)
+            </a>
+            <a href="/admin-classic/api/" class="btn btn-secondary">
+                API Models
+            </a>
+            <a href="/admin-classic/auth/user/" class="btn btn-secondary">
+                Benutzer verwalten
+            </a>
+            <a href="/admin-classic/auth/group/" class="btn btn-secondary">
+                Gruppen verwalten
+            </a>
+            <a href="/api/" class="btn btn-secondary">
+                API Endpunkte
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

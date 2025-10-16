@@ -1,0 +1,164 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Dashboard - Eisenach App Admin{% endblock %}
+{% block page_title %}Start Dashboard{% endblock %}
+
+{% block content %}
+<!-- Logo und Willkommensnachricht -->
+<div class="card">
+    <div class="card-header header-with-logo">
+        <div style="margin-bottom: 20px;">
+            <img src="/static/admin/img/eisenach-logo.png" alt="Eisenach App Logo" 
+                 class="logo-large"
+                 style="height: 100px; width: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">
+        </div>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 600; color: #2c3e50;">Admin Dashboard</h1>
+        <p style="margin: 10px 0 0 0; font-size: 16px; color: #7f8c8d;">Eisenach App Verwaltung</p>
+    </div>
+</div>
+
+<!-- Statistiken -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_events }}</div>
+        <div class="stat-label">Events gesamt</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.pending_events }}</div>
+        <div class="stat-label">Warten auf Freigabe</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_users }}</div>
+        <div class="stat-label">Registrierte Nutzer</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.active_users }}</div>
+        <div class="stat-label">Aktive Nutzer</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.total_comments }}</div>
+        <div class="stat-label">Kommentare gesamt</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ stats.pending_reports }}</div>
+        <div class="stat-label">Offene Reports</div>
+    </div>
+</div>
+
+<!-- Aktuelle Aktivitäten -->
+<div class="card">
+    <div class="card-header">
+        <h3>Neueste Events</h3>
+    </div>
+    <div class="card-body">
+        {% if recent_events %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Titel</th>
+                        <th>Erstellt von</th>
+                        <th>Datum</th>
+                        <th>Status</th>
+                        <th>Teilnehmer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in recent_events %}
+                    <tr>
+                        <td>
+                            <strong>{{ event.title }}</strong>
+                            <br><small>{{ event.location }}</small>
+                        </td>
+                        <td>{{ event.created_by.username }}</td>
+                        <td>{{ event.date|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            {% if event.status == 'published' %}
+                                <span class="badge badge-success">{{ event.get_status_display }}</span>
+                            {% elif event.status == 'pending' %}
+                                <span class="badge badge-warning">{{ event.get_status_display }}</span>
+                            {% else %}
+                                <span class="badge badge-danger">{{ event.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ event.participants.count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Keine Events vorhanden.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Events die Aufmerksamkeit brauchen -->
+{% if urgent_events %}
+<div class="card">
+    <div class="card-header">
+        <h3>Events die Aufmerksamkeit brauchen</h3>
+    </div>
+    <div class="card-body">
+        {% for event in urgent_events %}
+        <div style="padding: 15px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 10px;">
+            <div style="display: flex; gap: 15px; align-items: flex-start;">
+                {% if event.get_image_url %}
+                <img src="{{ event.get_image_url }}" alt="{{ event.title }}" 
+                     style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+                {% else %}
+                <div style="width: 80px; height: 80px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">
+                    📷
+                </div>
+                {% endif %}
+                <div style="flex: 1;">
+                    <h4>{{ event.title }}</h4>
+                    <p><strong>Status:</strong> 
+                        {% if event.status == 'pending' %}
+                            <span class="badge badge-warning">Wartet auf Freigabe</span>
+                        {% elif event.status == 'reported' %}
+                            <span class="badge badge-danger">Gemeldet</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Erstellt von:</strong> {{ event.created_by.username }}</p>
+                    <p><strong>Datum:</strong> {{ event.date|date:"d.m.Y H:i" }}</p>
+                    <div style="margin-top: 10px;">
+                        <a href="{% url 'admin_event_requests' %}" class="btn btn-primary">Bearbeiten</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Top Events -->
+{% if top_events %}
+<div class="card">
+    <div class="card-header">
+        <h3>Beliebteste Events</h3>
+    </div>
+    <div class="card-body">
+        {% for event in top_events %}
+        <div style="padding: 10px; border-bottom: 1px solid #e9ecef; display: flex; align-items: center; gap: 15px;">
+            {% if event.get_image_url %}
+            <img src="{{ event.get_image_url }}" alt="{{ event.title }}" 
+                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+            {% else %}
+            <div style="width: 60px; height: 60px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d;">
+                📷
+            </div>
+            {% endif %}
+            <div style="flex: 1;">
+                <strong>{{ event.title }}</strong>
+                <span style="float: right; color: #3498db;">
+                    {{ event.participant_count }} Teilnehmer
+                </span>
+                <br><small>{{ event.location }} • {{ event.date|date:"d.m.Y" }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Moderation - Eisenach App Admin{% endblock %}
+{% block page_title %}Moderation{% endblock %}
+
+{% block content %}
+<!-- Filter und Statistiken -->
+<div class="card">
+    <div class="card-header">
+        <h3>Kommentar-Moderation</h3>
+    </div>
+    <div class="card-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <a href="?filter=all" class="btn {% if filter_type == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Alle Kommentare
+            </a>
+            <a href="?filter=recent" class="btn {% if filter_type == 'recent' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Letzte 24h
+            </a>
+            <a href="?filter=reported" class="btn {% if filter_type == 'reported' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Gemeldet
+            </a>
+        </div>
+        
+    </div>
+</div>
+
+<!-- Kommentare nach Events gruppiert -->
+{% if comments_by_event %}
+    {% for event_id, event_data in comments_by_event.items %}
+    <div class="card">
+        <div class="card-header">
+            <h3>{{ event_data.event.title }}</h3>
+            <p><small>{{ event_data.event.location }} • {{ event_data.event.date|date:"d.m.Y H:i" }}</small></p>
+        </div>
+        <div class="card-body">
+            {% for comment in event_data.comments %}
+            <div style="border: 1px solid #e9ecef; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                        <strong>{{ comment.author.username }}</strong>
+                        <span style="color: #7f8c8d; font-size: 12px;">
+                            • {{ comment.created_at|date:"d.m.Y H:i" }}
+                        </span>
+                    </div>
+                    <div>
+                        <button onclick="deleteComment({{ comment.id }})" class="btn btn-danger btn-sm">
+                            Löschen
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                    {{ comment.text }}
+                </div>
+                
+                <div style="display: flex; gap: 10px; font-size: 12px; color: #7f8c8d;">
+                    <span>{{ comment.likes.count }} Likes</span>
+                    <span>{{ comment.replies.count }} Antworten</span>
+                    {% if comment.is_edited %}
+                        <span>Bearbeitet</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <div class="card-body">
+            <p>Keine Kommentare gefunden.</p>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="card">
+    <div class="card-body">
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&filter={{ filter_type }}" class="btn btn-primary">
+                    ← Vorherige
+                </a>
+            {% endif %}
+            
+            <span style="padding: 10px; color: #7f8c8d;">
+                Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&filter={{ filter_type }}" class="btn btn-primary">
+                    Nächste →
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+<!-- CSRF Token für AJAX -->
+{% csrf_token %}
+{% endblock %}

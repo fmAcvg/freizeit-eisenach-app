@@ -1,0 +1,166 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Nutzer-Management - Eisenach App Admin{% endblock %}
+{% block page_title %}Nutzer-Management{% endblock %}
+
+{% block content %}
+<!-- Statistiken -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ user_stats.total }}</div>
+        <div class="stat-label">Nutzer gesamt</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ user_stats.active }}</div>
+        <div class="stat-label">Aktiv</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ user_stats.inactive }}</div>
+        <div class="stat-label">Gesperrt</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ user_stats.staff }}</div>
+        <div class="stat-label">Staff</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ user_stats.superuser }}</div>
+        <div class="stat-label">Superuser</div>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="card">
+    <div class="card-header">
+        <h3>Nutzer-Management</h3>
+    </div>
+    <div class="card-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <a href="?status=all" class="btn {% if status_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Alle Nutzer
+            </a>
+            <a href="?status=active" class="btn {% if status_filter == 'active' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Aktiv ({{ user_stats.active }})
+            </a>
+            <a href="?status=inactive" class="btn {% if status_filter == 'inactive' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Gesperrt ({{ user_stats.inactive }})
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Nutzer-Liste -->
+{% if page_obj.object_list %}
+    {% for user in page_obj.object_list %}
+    <div class="card">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3>{{ user.username }}</h3>
+                    <p><small>{{ user.email }} • Registriert am {{ user.date_joined|date:"d.m.Y H:i" }}</small></p>
+                </div>
+                <div>
+                    {% if user.is_active %}
+                        <span class="badge badge-success">Aktiv</span>
+                    {% else %}
+                        <span class="badge badge-danger">Gesperrt</span>
+                    {% endif %}
+                    {% if user.is_staff %}
+                        <span class="badge badge-info">Staff</span>
+                    {% endif %}
+                    {% if user.is_superuser %}
+                        <span class="badge badge-warning">Superuser</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Nutzer-Details -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <h4>Account-Informationen</h4>
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>E-Mail:</strong> {{ user.email }}</p>
+                    <p><strong>Alter:</strong> {{ user.profile.age|default:'unbekannt' }}</p>
+                    <p><strong>Registriert:</strong> {{ user.date_joined|date:"d.m.Y H:i" }}</p>
+                    <p><strong>Letzter Login:</strong> 
+                        {% if user.last_login %}
+                            {{ user.last_login|date:"d.m.Y H:i" }}
+                        {% else %}
+                            Nie
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <h4>Statistiken</h4>
+                    <p><strong>Events erstellt:</strong> {{ user.created_events.count }}</p>
+                    <p><strong>Kommentare:</strong> {{ user.event_comments.count }}</p>
+                    <p><strong>Teilnahmen:</strong> {{ user.event_participations.count }}</p>
+                    <p><strong>Likes gegeben:</strong> {{ user.event_likes.count }}</p>
+                </div>
+            </div>
+            
+            <!-- Aktionen -->
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h4>Aktionen</h4>
+                    </div>
+                    <div>
+                        {% if user.is_active %}
+                            <button onclick="banUser({{ user.id }}, '{{ user.username }}')" class="btn btn-warning">
+                                Nutzer sperren
+                            </button>
+                        {% else %}
+                            <button onclick="unbanUser({{ user.id }}, '{{ user.username }}')" class="btn btn-success">
+                                Nutzer entsperren
+                            </button>
+                        {% endif %}
+                        <button onclick="deleteUserCompletely({{ user.id }}, '{{ user.username }}')" class="btn btn-danger">
+                            Nutzer löschen
+                        </button>
+                        <a href="/admin-classic/auth/user/{{ user.id }}/change/" class="btn btn-primary">
+                            Details bearbeiten
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <div class="card-body">
+            <p>Keine Nutzer gefunden!</p>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="card">
+    <div class="card-body">
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}" class="btn btn-primary">
+                    ← Vorherige
+                </a>
+            {% endif %}
+            
+            <span style="padding: 10px; color: #7f8c8d;">
+                Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}" class="btn btn-primary">
+                    Nächste →
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- CSRF Token für AJAX -->
+{% csrf_token %}
+{% endblock %}
+

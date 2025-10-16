@@ -1,0 +1,163 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Event-Anfragen - Eisenach App Admin{% endblock %}
+{% block page_title %}Event-Anfragen{% endblock %}
+
+{% block content %}
+<!-- Statistiken -->
+<div class="card">
+    <div class="card-header">
+        <h3>Event-Anfragen Management</h3>
+    </div>
+    <div class="card-body">
+        <p><strong>Wartende Events:</strong> {{ total_pending }} von {{ page_obj.paginator.count }} Events</p>
+        
+        {% if total_pending > 0 %}
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin: 15px 0;">
+            <strong>Hinweis:</strong> {{ total_pending }} Events warten auf Ihre Freigabe!
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bulk-Aktionen -->
+{% if page_obj.object_list %}
+<form method="post" style="margin-bottom: 20px;">
+    {% csrf_token %}
+    <div class="card">
+        <div class="card-header">
+            <h3>Schnellaktionen</h3>
+        </div>
+        <div class="card-body">
+            <button type="submit" name="action" value="approve" class="btn btn-success" 
+                    onclick="return confirm('Ausgewählte Events wirklich akzeptieren?')">
+                Alle ausgewählten akzeptieren
+            </button>
+            <button type="submit" name="action" value="reject" class="btn btn-danger"
+                    onclick="return confirm('Ausgewählte Events wirklich ablehnen?')">
+                Alle ausgewählten ablehnen
+            </button>
+        </div>
+    </div>
+</form>
+{% endif %}
+
+<!-- Event-Liste -->
+{% if page_obj.object_list %}
+    {% for event in page_obj.object_list %}
+    <div class="card">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3>{{ event.title }}</h3>
+                    <p><small>{{ event.location }} • {{ event.date|date:"d.m.Y H:i" }}</small></p>
+                </div>
+                <div>
+                    <span class="badge badge-warning">{{ event.get_status_display }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Event-Bild -->
+            {% if event.get_image_url %}
+            <div style="margin-bottom: 20px;">
+                <h4>Event-Bild</h4>
+                <div style="text-align: center;">
+                    <img src="{{ event.get_image_url }}" alt="{{ event.title }}" 
+                         style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Event-Details -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <h4>Event-Details</h4>
+                    <p><strong>Erstellt von:</strong> {{ event.created_by.username }}</p>
+                    <p><strong>Alter (Ersteller):</strong> {{ event.created_by.profile.age|default:'unbekannt' }}</p>
+                    <p><strong>Erstellt am:</strong> {{ event.created_at|date:"d.m.Y H:i" }}</p>
+                    <p><strong>Max. Teilnehmer:</strong> {{ event.max_guests }}</p>
+                    <p><strong>Mindestalter:</strong> {{ event.min_age }} Jahre</p>
+                    {% if event.cost %}
+                        <p><strong>Kosten:</strong> {{ event.cost }}</p>
+                    {% endif %}
+                    {% if event.contact_info %}
+                        <p><strong>Kontakt:</strong> {{ event.contact_info }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <h4>Statistiken</h4>
+                    <p><strong>Teilnehmer:</strong> {{ event.participant_count }}</p>
+                    <p><strong>Kommentare:</strong> {{ event.comment_count }}</p>
+                    <p><strong>Likes:</strong> {{ event.like_count }}</p>
+                </div>
+            </div>
+            
+            <!-- Beschreibung -->
+            <div style="margin-bottom: 20px;">
+                <h4>Beschreibung</h4>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #3498db;">
+                    {{ event.description|linebreaks }}
+                </div>
+            </div>
+            
+            <!-- Aktionen -->
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <input type="checkbox" name="event_ids" value="{{ event.id }}" style="margin-right: 10px;">
+                        <label>Für Bulk-Aktion auswählen</label>
+                    </div>
+                    <div>
+                        <button onclick="approveEvent({{ event.id }})" class="btn btn-success">
+                            Akzeptieren
+                        </button>
+                        <button onclick="rejectEvent({{ event.id }})" class="btn btn-danger">
+                            Ablehnen
+                        </button>
+                        <a href="/admin-classic/api/event/{{ event.id }}/change/" class="btn btn-primary">
+                            Bearbeiten
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <div class="card-body">
+            <p>Keine wartenden Event-Anfragen! Alle Events wurden bereits bearbeitet.</p>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="card">
+    <div class="card-body">
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-primary">
+                    ← Vorherige
+                </a>
+            {% endif %}
+            
+            <span style="padding: 10px; color: #7f8c8d;">
+                Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn btn-primary">
+                    Nächste →
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+<!-- CSRF Token für AJAX -->
+{% csrf_token %}
+{% endblock %}
