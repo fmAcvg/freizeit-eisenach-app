@@ -1,119 +1,92 @@
 # -*- coding: utf-8 -*-
 """
-Zentrale Konfigurationsdatei für das Eisenach Backend
-Hier können alle wichtigen Einstellungen geändert werden
+einfacher überblick über die wichtigsten einstellungen fürs backend
+hier stell ich nur die werte ein, die wir in der entwicklung wirklich brauchen
 """
 
 import os
 from django.conf import settings
 
-# ============================================================================
-# ADMIN KONFIGURATION
-# ============================================================================
-
-# Admin Superuser Einstellungen
+# admin einstellungen (nur für entwicklung, sonst bitte env benutzen)
 ADMIN_CONFIG = {
     'username': 'admin',
     'email': 'admin@eisenach-app.de',
-    'password': 'admin123',  # Einfaches Passwort für Entwicklung
+    'password': 'admin123',  # nur für dev, in echt natürlich ändern :)
     'first_name': 'Eisenach',
     'last_name': 'Administrator',
 }
 
-# ============================================================================
-# API KONFIGURATION
-# ============================================================================
-
-# API Einstellungen
+# api grundwerte, damit paginierung und timeouts konsistent sind
 API_CONFIG = {
-    'page_size': 20,  # Anzahl Events pro Seite
-    'max_page_size': 100,  # Maximale Events pro Seite
-    'default_timeout': 30,  # Timeout für API-Requests in Sekunden
+    'page_size': 20,  # wie viele elemente pro seite
+    'max_page_size': 100,  # obergrenze falls jemand übertreibt
+    'default_timeout': 30,  # sekunden bis ein request abbricht
 }
 
-# ============================================================================
-# SECURITY KONFIGURATION
-# ============================================================================
-
-# Sicherheits-Einstellungen
+# sicherheitseinstellungen in klein und simpel gehalten
 SECURITY_CONFIG = {
-    'token_expire_hours': 24,  # Token-Ablaufzeit in Stunden
-    'password_min_length': 8,  # Mindestlänge für Passwörter
-    'max_login_attempts': 5,  # Maximale Login-Versuche
+    'token_expire_hours': 24,  # login token läuft nach 24h ab
+    'password_min_length': 8,  # passwort sollte mindestens 8 zeichen haben
+    'max_login_attempts': 5,  # zu viele versuche -> sperre kurz
 }
 
-# ============================================================================
-# DATABASE KONFIGURATION
-# ============================================================================
-
-# Datenbank-Einstellungen
+# datenbank verhalten beim start (nur dev-qualität)
 DATABASE_CONFIG = {
-    'auto_create_superuser': True,  # Superuser automatisch erstellen
-    'auto_migrate': True,  # Automatische Migrationen
-    'create_dummy_data': True,  # Dummy-Daten erstellen
+    'auto_create_superuser': True,  # superuser automatisch anlegen
+    'auto_migrate': True,  # migrationen beim start durchlaufen lassen
+    'create_dummy_data': True,  # testdaten erzeugen (macht die app direkt nutzbar)
 }
 
-# ============================================================================
-# DEVELOPMENT KONFIGURATION
-# ============================================================================
-
-# Entwicklungseinstellungen
+# dev-einstellungen: ip/ports und was im wlan so gebraucht wird
 DEV_CONFIG = {
-    'debug': True,  # Debug-Modus
-    # Einheitliche Basis-URLs (immer 192er Adresse verwenden)
-    # Hinweis: API-Port ist 8000 (Django), Expo/Frontend ist 8081 (Metro)
+    'debug': False,  # debug-modus (in prod bitte aus)
+    # basis-urls: wir nutzen die 192er ip, damit handy im wlan drankommt
+    # api läuft auf 8000, metro/expo auf 8081
     'api_base_url': 'http://192.168.2.120:8000/api',
-    'frontend_base_url': 'exp://192.168.2.120:8081',  # Expo-Gerätelink
-    'frontend_web_url': 'http://192.168.2.120:8081',  # Metro-Webserver
+    'frontend_base_url': 'exp://192.168.2.120:8081',  # expo link fürs handy
+    'frontend_web_url': 'http://192.168.2.120:8081',  # metro webserver
 
-    # CORS-Whitelist: Von wo das Frontend Anfragen schicken darf
+    # cors: von hier darf das frontend requests schicken
     'cors_allowed_origins': [
-        # Lokalhost lassen wir fürs Debugging drin, aber die 192er ist Standard
+        # localhost lassen wir drin, aber die 192er ist unser standard
         'http://localhost:3000',
         'http://127.0.0.1:3000',
-        'http://192.168.2.120:3000',  # Web-Frontend-Port
-        'http://192.168.2.120:8081',  # Metro-Web
-        'exp://192.168.2.120:8081',   # Expo auf Handy
+        'http://192.168.2.120:3000',  # web-frontend port
+        'http://192.168.2.120:8081',  # metro web
+        'exp://192.168.2.120:8081',   # expo aufm handy
     ],
 
-    # Hosts, unter denen das Backend erreichbar ist
+    # hosts, unter denen das backend erreichbar ist
     'allowed_hosts': [
         'localhost',
         '127.0.0.1',
-        '192.168.2.120',  # 192er Adresse immer erlauben
+        '192.168.2.120',  # 192er adresse immer erlauben
         '0.0.0.0',
     ],
 }
 
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
-
+# kleine helper funktionen, die einfach nur kopien der config liefern
 def get_admin_config():
-    """Gibt die Admin-Konfiguration zurück"""
+    """gibt admin einstellungen zurück (kopie, damit nichts kaputt geht)"""
     return ADMIN_CONFIG.copy()
 
 def get_api_config():
-    """Gibt die API-Konfiguration zurück"""
+    """gibt api einstellungen zurück"""
     return API_CONFIG.copy()
 
 def get_security_config():
-    """Gibt die Sicherheits-Konfiguration zurück"""
+    """gibt sicherheits einstellungen zurück"""
     return SECURITY_CONFIG.copy()
 
 def get_database_config():
-    """Gibt die Datenbank-Konfiguration zurück"""
+    """gibt datenbank einstellungen zurück"""
     return DATABASE_CONFIG.copy()
 
 def get_dev_config():
-    """Gibt die Entwicklungskonfiguration zurück"""
+    """gibt dev einstellungen zurück"""
     return DEV_CONFIG.copy()
 
-# ============================================================================
-# ENVIRONMENT VARIABLES OVERRIDE
-# ============================================================================
-
-# Umgebungsvariablen können die Konfiguration überschreiben
+# env-variablen können werte überschreiben (praktisch im serverbetrieb)
 if os.getenv('ADMIN_PASSWORD'):
     ADMIN_CONFIG['password'] = os.getenv('ADMIN_PASSWORD')
 
@@ -126,30 +99,27 @@ if os.getenv('ADMIN_EMAIL'):
 if os.getenv('DEBUG') == 'False':
     DEV_CONFIG['debug'] = False
 
-# ============================================================================
-# CONFIGURATION VALIDATION
-# ============================================================================
-
+# einfache prüfung damit wir uns nicht mit blöden typos selbst ärgern
 def validate_config():
-    """Validiert die Konfiguration"""
+    """checkt die wichtigsten werte, damit nix peinlich schief geht"""
     errors = []
     
-    # Admin-Passwort validieren
+    # admin passwort grob prüfen
     if len(ADMIN_CONFIG['password']) < 8:
-        errors.append("Admin-Passwort muss mindestens 8 Zeichen lang sein")
+        errors.append("admin-passwort muss mindestens 8 zeichen lang sein")
     
-    # E-Mail validieren
+    # e-mail prüfen (nur ganz simpel)
     if '@' not in ADMIN_CONFIG['email']:
-        errors.append("Admin-E-Mail ist ungültig")
+        errors.append("admin e-mail ist ungültig")
     
     if errors:
-        raise ValueError("Konfigurationsfehler: " + ", ".join(errors))
+        raise ValueError("konfig fehler: " + ", ".join(errors))
     
     return True
 
-# Konfiguration beim Import validieren
+# beim import einmal checken und freundliche meldung ausgeben
 try:
     validate_config()
 except ValueError as e:
-    print(f"Konfigurationsfehler: {e}")
-    print("Bitte überprüfe die config.py Datei")
+    print(f"konfigurationsfehler: {e}")
+    print("bitte die config.py einmal prüfen, danke")

@@ -15,21 +15,20 @@ from .serializers import (
     FriendshipSerializer, FriendshipRequestSerializer, UserReportSerializer
 )
 
-# Hier definiere ich alle API-Views - das sind die Funktionen, die auf HTTP-Anfragen reagieren
-# Views bestimmen, was passiert, wenn jemand eine URL aufruft (z.B. GET /api/events/)
+# hier liegen die api views – also was bei den urls passiert
 
-# Veranstaltungs-Views
+# veranstaltungs-views
 class EventListCreateView(generics.ListCreateAPIView):
-    # Diese View zeigt alle Veranstaltungen an und erlaubt das Erstellen neuer Veranstaltungen
-    serializer_class = EventSerializer  # Welcher Serializer soll verwendet werden?
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Lesen erlaubt für alle, Schreiben nur für angemeldete Benutzer
-    parser_classes = [parsers.JSONParser, parsers.MultiPartParser, parsers.FormParser]  # Unterstützt Datei-Uploads
+    # liste anzeigen und neue events erstellen
+    serializer_class = EventSerializer  # welcher serializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # lesen alle, schreiben nur eingeloggt
+    parser_classes = [parsers.JSONParser, parsers.MultiPartParser, parsers.FormParser]  # uploads erlaubt
     
     def get_queryset(self):
-        # Basis: veröffentlichte Events
+        # grundmenge: veröffentlichte events
         queryset = Event.objects.filter(status='published')
 
-        # Altersfilter, wenn Alter bekannt
+        # altersfilter, wenn alter bekannt
         if self.request.user.is_authenticated:
             try:
                 profile = self.request.user.profile
@@ -38,36 +37,34 @@ class EventListCreateView(generics.ListCreateAPIView):
             except Profile.DoesNotExist:
                 pass
 
-        # Kapazitätsfilter: volle Events ausblenden, außer für Ersteller/Teilnehmer
+        # kapazität: volle events ausblenden (außer ersteller/teilnehmer)
         queryset = queryset.annotate(participant_count=Count('participants'))
         user = self.request.user if self.request.user.is_authenticated else None
         if user:
-            # Behalte Events, die nicht voll sind ODER bei denen der Nutzer Ersteller/Teilnehmer ist
+            # nicht volle events oder eigene/beteiligte behalten
             queryset = queryset.filter(
                 Q(max_guests__isnull=True) | Q(participant_count__lt=F('max_guests')) |
                 Q(created_by=user) | Q(participants__user=user)
             )
         else:
-            # nicht eingeloggt: nur nicht volle Events
+            # ohne login nur nicht volle events
             queryset = queryset.filter(Q(max_guests__isnull=True) | Q(participant_count__lt=F('max_guests')))
 
         return queryset.order_by('-date').distinct()
     
     def perform_create(self, serializer):
-        # Beim Erstellen einer Veranstaltung wird automatisch der aktuelle Benutzer als Ersteller gesetzt
-        # Neue Events haben standardmäßig den Status "pending" (wartet auf Freigabe)
+        # ersteller = aktueller user, status startet als „pending“
         serializer.save(created_by=self.request.user, status='pending')
 
 class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
-    # Diese View zeigt eine bestimmte Veranstaltung an und erlaubt das Bearbeiten/Löschen
-    queryset = Event.objects.all()  # Alle Veranstaltungen
-    serializer_class = EventSerializer  # Gleicher Serializer wie oben
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Gleiche Berechtigungen
+    # einzelnes event anzeigen/bearbeiten/löschen
+    queryset = Event.objects.all()  # alle events
+    serializer_class = EventSerializer  # wie oben
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # wie oben
 
     def get_object(self):
         event = super().get_object()
-        # Altersgating: Angemeldete Nutzer sehen Events oberhalb ihres Alters nicht,
-        # außer sie sind Ersteller oder bereits Teilnehmer
+        # altersgrenze: jüngere sehen manche events nicht (außer ersteller/teilnehmer)
         user = self.request.user
         if user.is_authenticated and event.min_age is not None:
             try:
@@ -81,42 +78,42 @@ class EventDetailView(generics.RetrieveUpdateDestroyAPIView):
                 and event.created_by_id != user.id
                 and not EventParticipant.objects.filter(event=event, user=user).exists()
             ):
-                # Aus Sicherheitsgründen 404 statt 403 zurückgeben
+                # sicherheit: 404 statt 403
                 from rest_framework.exceptions import NotFound
                 raise NotFound(detail='Event nicht gefunden')
         return event
 
 class FriendEventsListView(generics.ListAPIView):
-    # Liste von Events, an denen mindestens ein Freund teilnimmt
+    # events mit mindestens einem freund
     serializer_class = EventSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        # Freunde des aktuellen Nutzers ermitteln (symmetrisch)
+        # freund ids ermitteln
         user = self.request.user
         friend_ids = set()
         friendships = Friendship.objects.filter(Q(user1=user) | Q(user2=user)).only('user1_id', 'user2_id')
         for fs in friendships:
             friend_ids.add(fs.user2_id if fs.user1_id == user.id else fs.user1_id)
         
-        # Events mit mindestens einem Freund als Teilnehmer
+        # events finden
         qs = Event.objects.filter(status='published', participants__user_id__in=friend_ids).distinct()
-        # Zähle, wie viele Freunde teilnehmen (für Anzeige)
+        # wie viele freunde teilnehmen (für die anzeige)
         qs = qs.annotate(friend_participants_count=Count('participants', filter=Q(participants__user_id__in=friend_ids)))
         return qs.order_by('-date')
 
-# Meine Events Views
+# meine events views
 class MyCreatedEventsView(generics.ListAPIView):
-    # Diese View zeigt alle Events an, die der aktuelle User erstellt hat
+    # events, die der aktuelle user erstellt hat
     serializer_class = EventSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        # Zeige nur Events, die der aktuelle User erstellt hat
+        # nur eigene events
         user = self.request.user
         events = Event.objects.filter(created_by=user)
         
-        # Debug-Ausgabe
+        # debug ausgabe
         print(f"DEBUG MyCreatedEventsView - User: {user.username} (ID: {user.id})")
         print(f"DEBUG Alle Events in DB: {Event.objects.count()}")
         print(f"DEBUG Events von diesem User: {events.count()}")
@@ -127,25 +124,25 @@ class MyCreatedEventsView(generics.ListAPIView):
         return events
 
 class MyParticipatedEventsView(generics.ListAPIView):
-    # Diese View zeigt alle Events an, an denen der aktuelle User teilnimmt
+    # events, an denen der user teilnimmt
     serializer_class = EventSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        # Zeige nur Events, an denen der aktuelle User teilnimmt
+        # nur events mit teilnahme des users
         user = self.request.user
         
-        # Debug-Ausgabe
+        # debug ausgabe
         print(f"DEBUG MyParticipatedEventsView - User: {user.username} (ID: {user.id})")
         
-        # Direkte Abfrage der EventParticipant-Objekte für Debug
+        # direkte abfrage der eventparticipant objekte
         participant_objects = EventParticipant.objects.filter(user=user)
         print(f"DEBUG EventParticipant-Objekte für {user.username}: {participant_objects.count()}")
         
         for participant in participant_objects:
             print(f"   - Event: {participant.event.title} (ID: {participant.event.id})")
         
-        # Events über die QuerySet-Methode
+        # events über queryset
         participated_events = Event.objects.filter(participants__user=user).distinct()
         print(f"DEBUG Events via QuerySet: {participated_events.count()}")
         
@@ -154,20 +151,20 @@ class MyParticipatedEventsView(generics.ListAPIView):
         
         return participated_events
 
-# Event-Like Views
+# event-like views
 class EventLikeCreateView(generics.CreateAPIView):
-    # Diese View erlaubt das Liken eines Events
-    serializer_class = EventLikeSerializer  # Serializer für Likes
-    permission_classes = [permissions.IsAuthenticated]  # Nur angemeldete Benutzer
+    # event liken
+    serializer_class = EventLikeSerializer  # serializer für likes
+    permission_classes = [permissions.IsAuthenticated]  # nur angemeldete
     
     def perform_create(self, serializer):
-        # Beim Erstellen eines Likes wird automatisch der aktuelle Benutzer und das Event gesetzt
+        # aktueller user und event werden gesetzt
         event_id = self.kwargs['event_id']
         event = Event.objects.get(id=event_id)
         serializer.save(user=self.request.user, event=event)
 
 class EventLikeToggleView(APIView):
-    """Toggle-Like: Wenn bereits geliked, dann entfernen, sonst hinzufügen"""
+    """toggle like: wenn schon geliked -> entfernen, sonst hinzufügen"""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, event_id):
@@ -181,51 +178,51 @@ class EventLikeToggleView(APIView):
             existing.delete()
             liked = False
         else:
-            # Erstellen, UNIQUE-Constraint ist durch Vorprüfung abgesichert
+            # neu anlegen (unique ist vorher geprüft)
             EventLike.objects.create(event=event, user=request.user)
             liked = True
 
         likes_count = EventLike.objects.filter(event_id=event_id).count()
         return Response({'status': 'liked' if liked else 'unliked', 'likes_count': likes_count})
 
-# Event-Kommentar Views
+# event-kommentar views
 class EventCommentListCreateView(generics.ListCreateAPIView):
-    # Diese View zeigt alle Kommentare zu einem Event an und erlaubt das Erstellen neuer Kommentare
-    serializer_class = EventCommentSerializer  # Serializer für Kommentare
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Lesen für alle, Schreiben nur für angemeldete Benutzer
+    # kommentare zu event anzeigen und neue erstellen
+    serializer_class = EventCommentSerializer  # serializer für kommentare
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # lesen alle, schreiben nur eingeloggt
     
     def get_queryset(self):
-        # Filtere nur die Kommentare der spezifischen Veranstaltung
+        # nur kommentare zu der angegebenen veranstaltung
         event_id = self.kwargs['event_id']
         return EventComment.objects.filter(event_id=event_id).select_related('author', 'author__profile')
     
     def perform_create(self, serializer):
-        # Beim Erstellen eines Kommentars wird automatisch der aktuelle Benutzer und das Event gesetzt
+        # aktueller user + event setzen
         event_id = self.kwargs['event_id']
         event = Event.objects.get(id=event_id)
         serializer.save(author=self.request.user, event=event)
 
 class EventCommentDestroyView(generics.DestroyAPIView):
-    # Diese View erlaubt das Löschen eines Kommentars (nur vom Autor oder Event-Ersteller)
+    # kommentar löschen (autor oder event ersteller)
     serializer_class = EventCommentSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        # Benutzer kann nur seine eigenen Kommentare löschen oder Kommentare auf seinen eigenen Events
+        # nur eigene kommentare oder kommentare auf eigenen events
         return EventComment.objects.filter(
             Q(author=self.request.user) | Q(event__created_by=self.request.user)
         )
     
     def perform_destroy(self, instance):
-        # Prüfe ob der Benutzer berechtigt ist, diesen Kommentar zu löschen
+        # prüfe berechtigung zum löschen
         if instance.author == self.request.user:
-            # Autor kann seinen eigenen Kommentar löschen
+            # autor darf eigenen kommentar löschen
             instance.delete()
         elif instance.event.created_by == self.request.user:
-            # Event-Ersteller kann Kommentare auf seinem Event löschen
+            # event ersteller darf auf seinem event löschen
             instance.delete()
         else:
-            # Nicht berechtigt
+            # nicht berechtigt
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Du hast keine Berechtigung, diesen Kommentar zu löschen.")
 

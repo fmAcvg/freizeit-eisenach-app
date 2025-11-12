@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 
-# Hier definiere ich die Datenbankmodelle für unsere Eisenach-App
+# hier liegen alle datenbank-modelle für unsere app
 
 # Enums für verschiedene Status-Werte
 class EventStatus(models.TextChoices):
@@ -42,26 +42,25 @@ class ReportReason(models.TextChoices):
     OTHER = 'other', 'Sonstiges'
 
 class Event(models.Model):
-    # Das Event-Modell speichert alle Veranstaltungen in Eisenach
-    # Jede Veranstaltung hat einen Titel, Beschreibung, Ort und Datum
-    title = models.CharField(max_length=200)  # Name der Veranstaltung
-    description = models.TextField()  # Detaillierte Beschreibung (nicht optional)
-    date = models.DateTimeField()  # Wann findet es statt?
-    location = models.CharField(max_length=200)  # Wo findet es statt? (nicht optional)
-    image_url = models.URLField(blank=True, null=True)  # Bild-URL für die Veranstaltung
-    image = models.ImageField(upload_to='event_images/', blank=True, null=True)  # Hochgeladenes Bild
-    cost = models.CharField(max_length=50, blank=True)  # Kosten (z.B. "Kostenlos", "5€")
-    contact_info = models.TextField(blank=True)  # Kontaktinformationen (optional)
-    max_guests = models.PositiveIntegerField(blank=True, null=True)  # Maximale Teilnehmerzahl
-    min_age = models.PositiveIntegerField(blank=True, null=True, validators=[MinValueValidator(0)])  # Mindestalter
-    status = models.CharField(max_length=20, choices=EventStatus.choices, default=EventStatus.DRAFT)  # Status der Veranstaltung
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_events')  # Wer hat es erstellt?
-    created_at = models.DateTimeField(auto_now_add=True)  # Automatisch: Erstellungsdatum
-    updated_at = models.DateTimeField(auto_now=True)  # Automatisch: Letzte Änderung
-    published_at = models.DateTimeField(blank=True, null=True)  # Wann wurde es veröffentlicht?
+    # ein event mit titel, beschreibung, zeit und ort
+    title = models.CharField(max_length=200)  # name der veranstaltung
+    description = models.TextField()  # kurze oder lange beschreibung
+    date = models.DateTimeField()  # wann findet es statt
+    location = models.CharField(max_length=200)  # wo findet es statt
+    image_url = models.URLField(blank=True, null=True)  # externe bild url (optional)
+    image = models.ImageField(upload_to='event_images/', blank=True, null=True)  # hochgeladenes bild
+    cost = models.CharField(max_length=50, blank=True)  # z.b. „kostenlos“ oder „5€“
+    contact_info = models.TextField(blank=True)  # kontakt (optional)
+    max_guests = models.PositiveIntegerField(blank=True, null=True)  # maximale teilnehmerzahl
+    min_age = models.PositiveIntegerField(blank=True, null=True, validators=[MinValueValidator(0)])  # mindestalter
+    status = models.CharField(max_length=20, choices=EventStatus.choices, default=EventStatus.DRAFT)  # status
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_events')  # ersteller
+    created_at = models.DateTimeField(auto_now_add=True)  # wann erstellt
+    updated_at = models.DateTimeField(auto_now=True)  # letzte änderung
+    published_at = models.DateTimeField(blank=True, null=True)  # wann veröffentlicht (optional)
     
     class Meta:
-        ordering = ['-date']  # Sortierung: Neueste zuerst
+        ordering = ['-date']  # neueste zuerst anzeigen
         indexes = [
             models.Index(fields=['created_by']),
             models.Index(fields=['status']),
@@ -70,7 +69,7 @@ class Event(models.Model):
         ]
     
     def get_image_url(self):
-        """Gibt die Bild-URL zurück - entweder hochgeladenes Bild oder externe URL"""
+        """liefert die bild url, egal ob upload oder externe url"""
         if self.image:
             return self.image.url
         elif self.image_url:
@@ -78,33 +77,32 @@ class Event(models.Model):
         return None
 
     def __str__(self):
-        return self.title  # Für Admin-Interface: Zeige den Titel
+        return self.title  # im admin sieht man dann direkt den titel
 
 class EventParticipant(models.Model):
-    # Dieses Modell verknüpft Benutzer mit Veranstaltungen
-    # Es zeigt an, wer an welcher Veranstaltung teilnimmt
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='participants')  # Welche Veranstaltung?
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_participations')  # Welcher Benutzer?
-    joined_at = models.DateTimeField(auto_now_add=True)  # Wann hat er sich angemeldet?
+    # teilnahme eines users an einem event
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='participants')  # zu welchem event
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_participations')  # welcher user
+    joined_at = models.DateTimeField(auto_now_add=True)  # seit wann dabei
     
     class Meta:
-        unique_together = ['event', 'user']  # Ein Benutzer kann sich nur einmal pro Veranstaltung anmelden
+        unique_together = ['event', 'user']  # user kann nur einmal teilnehmen
         indexes = [
             models.Index(fields=['user']),
             models.Index(fields=['event']),
         ]
     
     def __str__(self):
-        return f"{self.user.username} - {self.event.title}"  # Für Admin: "Benutzername - Veranstaltung"
+        return f"{self.user.username} - {self.event.title}"  # im admin gut lesbar
 
 class EventLike(models.Model):
-    # Modell für Event-Likes von Benutzern
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='likes')  # Welche Veranstaltung?
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_likes')  # Welcher Benutzer?
-    created_at = models.DateTimeField(auto_now_add=True)  # Wann wurde geliked?
+    # like für ein event von einem user
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='likes')  # welches event
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_likes')  # welcher user
+    created_at = models.DateTimeField(auto_now_add=True)  # wann geliked
     
     class Meta:
-        unique_together = ['event', 'user']  # Ein Benutzer kann ein Event nur einmal liken
+        unique_together = ['event', 'user']  # nur ein like pro user/event
         indexes = [
             models.Index(fields=['user']),
         ]
@@ -113,14 +111,14 @@ class EventLike(models.Model):
         return f"{self.user.username} liked {self.event.title}"
 
 class EventComment(models.Model):
-    # Modell für Kommentare zu Events
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='comments')  # Welche Veranstaltung?
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_comments')  # Wer hat kommentiert?
-    text = models.TextField()  # Kommentar-Text
-    created_at = models.DateTimeField(auto_now_add=True)  # Wann wurde kommentiert?
+    # kommentar zu einem event
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='comments')  # zu welchem event
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_comments')  # wer hat geschrieben
+    text = models.TextField()  # was steht drin
+    created_at = models.DateTimeField(auto_now_add=True)  # wann geschrieben
     
     class Meta:
-        ordering = ['-created_at']  # Neueste Kommentare zuerst
+        ordering = ['-created_at']  # neueste zuerst
         indexes = [
             models.Index(fields=['event']),
             models.Index(fields=['author']),
@@ -131,13 +129,13 @@ class EventComment(models.Model):
         return f"{self.author.username} kommentierte {self.event.title}"
 
 class Friendship(models.Model):
-    # Modell für Freundschaftsbeziehungen zwischen Benutzern
-    user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friendships_as_user1')  # Erster Benutzer
-    user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friendships_as_user2')  # Zweiter Benutzer
-    created_at = models.DateTimeField(auto_now_add=True)  # Wann wurde die Freundschaft geschlossen?
+    # freundschaft zwischen zwei usern
+    user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friendships_as_user1')  # erster user
+    user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friendships_as_user2')  # zweiter user
+    created_at = models.DateTimeField(auto_now_add=True)  # seit wann befreundet
     
     class Meta:
-        unique_together = ['user1', 'user2']  # Eine Freundschaft kann nur einmal existieren
+        unique_together = ['user1', 'user2']  # freundschaft nur einmal
         indexes = [
             models.Index(fields=['user1']),
             models.Index(fields=['user2']),
@@ -147,16 +145,16 @@ class Friendship(models.Model):
         return f"{self.user1.username} - {self.user2.username}"
 
 class FriendshipRequest(models.Model):
-    # Modell für Freundschafts-Anfragen
-    from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_friend_requests')  # Wer sendet die Anfrage?
-    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_friend_requests')  # Wer erhält die Anfrage?
-    status = models.CharField(max_length=20, choices=FriendshipRequestStatus.choices, default=FriendshipRequestStatus.PENDING)  # Status der Anfrage
-    created_at = models.DateTimeField(auto_now_add=True)  # Wann wurde die Anfrage gesendet?
-    updated_at = models.DateTimeField(auto_now=True)  # Wann wurde sie zuletzt bearbeitet?
-    message = models.TextField(blank=True, null=True)  # Optional: Nachricht mit der Anfrage
+    # freundschaftsanfrage von a nach b
+    from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_friend_requests')  # wer fragt
+    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_friend_requests')  # wen fragt er
+    status = models.CharField(max_length=20, choices=FriendshipRequestStatus.choices, default=FriendshipRequestStatus.PENDING)  # status der anfrage
+    created_at = models.DateTimeField(auto_now_add=True)  # wann gesendet
+    updated_at = models.DateTimeField(auto_now=True)  # wann zuletzt geändert
+    message = models.TextField(blank=True, null=True)  # nachricht (optional)
     
     class Meta:
-        unique_together = ['from_user', 'to_user']  # Eine Anfrage zwischen zwei Benutzern nur einmal
+        unique_together = ['from_user', 'to_user']  # anfrage nur einmal pro paar
         indexes = [
             models.Index(fields=['from_user']),
             models.Index(fields=['to_user']),
@@ -167,10 +165,10 @@ class FriendshipRequest(models.Model):
         return f"{self.from_user.username} → {self.to_user.username} ({self.status})"
 
 class UserRole(models.Model):
-    # Einfache Benutzerrollen (admin, user)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roles')  # Welcher Benutzer?
-    role = models.CharField(max_length=20, choices=[('admin', 'Admin'), ('user', 'Benutzer')])  # Welche Rolle?
-    created_at = models.DateTimeField(auto_now_add=True)  # Wann wurde die Rolle vergeben?
+    # einfache rollen für user (admin/user)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roles')  # welcher user
+    role = models.CharField(max_length=20, choices=[('admin', 'Admin'), ('user', 'Benutzer')])  # welche rolle
+    created_at = models.DateTimeField(auto_now_add=True)  # seit wann
     
     class Meta:
         unique_together = ['user', 'role']  # Ein Benutzer kann eine Rolle nur einmal haben
@@ -182,17 +180,17 @@ class UserRole(models.Model):
         return f"{self.user.username} - {self.role}"
 
 class Notification(models.Model):
-    # Benachrichtigungen für Benutzer
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')  # Empfänger
-    type = models.CharField(max_length=20, choices=NotificationType.choices)  # Art der Benachrichtigung
-    title = models.CharField(max_length=200)  # Titel der Benachrichtigung
-    message = models.TextField()  # Nachrichtentext
-    is_read = models.BooleanField(default=False)  # Wurde die Benachrichtigung gelesen?
-    data = models.JSONField(blank=True, null=True)  # Zusätzliche Daten (optional)
-    created_at = models.DateTimeField(auto_now_add=True)  # Wann wurde sie erstellt?
+    # benachrichtigung für user
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')  # empfänger
+    type = models.CharField(max_length=20, choices=NotificationType.choices)  # art
+    title = models.CharField(max_length=200)  # titel
+    message = models.TextField()  # nachrichtentext
+    is_read = models.BooleanField(default=False)  # schon gelesen
+    data = models.JSONField(blank=True, null=True)  # extra daten (optional)
+    created_at = models.DateTimeField(auto_now_add=True)  # wann erstellt
     
     class Meta:
-        ordering = ['-created_at']  # Neueste Benachrichtigungen zuerst
+        ordering = ['-created_at']  # neueste oben
         indexes = [
             models.Index(fields=['user']),
             models.Index(fields=['user', 'is_read']),
@@ -202,28 +200,27 @@ class Notification(models.Model):
         return f"{self.user.username}: {self.title}"
 
 class Profile(models.Model):
-    # Benutzerprofile erweitern die Standard-Benutzerdaten
-    # Jeder Benutzer kann zusätzliche Informationen wie Bio und Avatar haben
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')  # Verknüpfung zu Benutzer
-    bio = models.TextField(blank=True)  # Kurze Selbstbeschreibung (optional)
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)  # Profilbild (optional)
-    location = models.CharField(max_length=100, blank=True)  # Wohnort des Benutzers
-    status = models.CharField(max_length=20, choices=UserStatus.choices, default=UserStatus.OFFLINE)  # Online-Status
+    # benutzerprofil mit optionalen details
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')  # verknüpft mit user
+    bio = models.TextField(blank=True)  # kurze beschreibung (optional)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)  # profilbild (optional)
+    location = models.CharField(max_length=100, blank=True)  # wohnort
+    status = models.CharField(max_length=20, choices=UserStatus.choices, default=UserStatus.OFFLINE)  # online-status
     
-    # Alters-Informationen
-    birth_date = models.DateField(blank=True, null=True)  # Geburtsdatum für Altersberechnung
-    age_visible = models.BooleanField(default=True)  # Alter öffentlich sichtbar
+    # alter/geburtstag
+    birth_date = models.DateField(blank=True, null=True)  # geburtsdatum
+    age_visible = models.BooleanField(default=True)  # alter anzeigen
     
-    # Datenschutz-Einstellungen
-    profile_public = models.BooleanField(default=True)  # Profil öffentlich sichtbar
-    events_public = models.BooleanField(default=True)   # Event-Teilnahme öffentlich sichtbar
+    # datenschutz
+    profile_public = models.BooleanField(default=True)  # profil öffentlich
+    events_public = models.BooleanField(default=True)   # event-teilnahme öffentlich
     
-    created_at = models.DateTimeField(auto_now_add=True)  # Automatisch: Erstellungsdatum
-    updated_at = models.DateTimeField(auto_now=True)  # Automatisch: Letzte Änderung
+    created_at = models.DateTimeField(auto_now_add=True)  # erstellt am
+    updated_at = models.DateTimeField(auto_now=True)  # geändert am
     
     @property
     def age(self):
-        """Berechnet das aktuelle Alter basierend auf dem Geburtsdatum"""
+        """berechnet das aktuelle alter aus dem geburtsdatum"""
         if not self.birth_date:
             return None
         from datetime import date
@@ -231,25 +228,24 @@ class Profile(models.Model):
         return today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
     
     def __str__(self):
-        return f"{self.user.username}'s Profile"  # Für Admin: "Benutzername's Profil"
+        return f"{self.user.username}'s Profile"  # im admin: „benutzername's profil“
 
 class UserReport(models.Model):
-    # Modell für Nutzer-Meldungen
-    # Ermöglicht es Nutzern, andere Nutzer, Events oder Kommentare zu melden
-    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_made')  # Wer meldet
-    reported_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_received', blank=True, null=True)  # Wer wird gemeldet
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='reports', blank=True, null=True)  # Event wird gemeldet
-    comment = models.ForeignKey('EventComment', on_delete=models.CASCADE, related_name='reports', blank=True, null=True)  # Kommentar wird gemeldet
-    reason = models.CharField(max_length=30, choices=ReportReason.choices)  # Grund der Meldung
-    description = models.TextField(blank=True)  # Zusätzliche Beschreibung (optional)
-    status = models.CharField(max_length=20, choices=ReportStatus.choices, default=ReportStatus.PENDING)  # Status der Meldung
-    admin_notes = models.TextField(blank=True)  # Notizen der Admins (optional)
-    created_at = models.DateTimeField(auto_now_add=True)  # Automatisch: Erstellungsdatum
-    updated_at = models.DateTimeField(auto_now=True)  # Automatisch: Letzte Änderung
-    resolved_at = models.DateTimeField(blank=True, null=True)  # Wann wurde es gelöst?
+    # meldung (report) gegen user/event/kommentar
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_made')  # wer meldet
+    reported_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_received', blank=True, null=True)  # wer wird gemeldet
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='reports', blank=True, null=True)  # gemeldetes event
+    comment = models.ForeignKey('EventComment', on_delete=models.CASCADE, related_name='reports', blank=True, null=True)  # gemeldeter kommentar
+    reason = models.CharField(max_length=30, choices=ReportReason.choices)  # grund
+    description = models.TextField(blank=True)  # beschreibung (optional)
+    status = models.CharField(max_length=20, choices=ReportStatus.choices, default=ReportStatus.PENDING)  # status
+    admin_notes = models.TextField(blank=True)  # notizen (optional)
+    created_at = models.DateTimeField(auto_now_add=True)  # erstellt am
+    updated_at = models.DateTimeField(auto_now=True)  # geändert am
+    resolved_at = models.DateTimeField(blank=True, null=True)  # gelöst am (optional)
     
     class Meta:
-        ordering = ['-created_at']  # Sortierung: Neueste zuerst
+        ordering = ['-created_at']  # neueste zuerst
         indexes = [
             models.Index(fields=['reporter']),
             models.Index(fields=['reported_user']),
@@ -257,8 +253,7 @@ class UserReport(models.Model):
             models.Index(fields=['reason']),
             models.Index(fields=['status', 'created_at']),
         ]
-        # Entferne unique_together da wir jetzt User-, Event- und Comment-Reports haben
-        # unique_together = ['reporter', 'reported_user']  # Ein Nutzer kann einen anderen nur einmal melden
+        # unique_together entfernt, weil jetzt mehrere modelle gemeldet werden können (user/event/comment)
     
     def __str__(self):
         if self.reported_user:

@@ -21,7 +21,10 @@ def is_admin_user(user):
     return user.is_authenticated and user.is_staff
 
 # Decorator für Admin-only Views
-admin_required = user_passes_test(is_admin_user, login_url='/admin/login/')
+admin_required = user_passes_test(
+    is_admin_user,
+    login_url='/admin-classic/login/'  # Hinweis: Klassisches Django-Login liegt unter /admin-classic/
+)
 
 @admin_required
 def dashboard_view(request):
