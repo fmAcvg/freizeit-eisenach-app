@@ -96,7 +96,7 @@ Alternativ: `start-app.bat` im Projektwurzelverzeichnis ausführen (Windows). Da
 So funktioniert die App „von vorne nach hinten“ – einmal in normalem Deutsch, so wie ich es im Unterricht erklären würde:
 
 <p align="center">
-  <img src="diagramm_rm.png" alt="Architektur der App – Übersicht" width="1400">
+  <img src="diagramm_rm.png" alt="Architektur der App – Übersicht" width="3000">
 </p>
 
 - **Frontend (Expo React Native)**
