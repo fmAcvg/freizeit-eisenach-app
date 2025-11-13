@@ -522,24 +522,10 @@ def main():
     # print Benachrichtigungen entfernt
     
     # Detaillierte Validierung
-    print("\nValidierung der erstellten Daten:")
     for user in users:
         created_events = Event.objects.filter(created_by=user)
         participated_events = Event.objects.filter(participants__user=user).distinct()
         participant_count = EventParticipant.objects.filter(user=user).count()
         
-        print(f"User {user.username}:")
-        print(f"   - Erstellt: {created_events.count()} Events")
-        print(f"   - Teilnahme: {participated_events.count()} Events")
-        print(f"   - EventParticipant-Objekte: {participant_count}")
-    
-    print("\nTest-Logins:")
-    print("- lars / test123 (13 Jahre)")
-    print("- lenny / test123 (17 Jahre)")
-    print("- valentin / test123 (12 Jahre)")
-    print("- enzo / test123 (19 Jahre)")
-    print("- marie / test123 (16 Jahre)")
-    print("- jonas / test123 (18 Jahre)")
-
 if __name__ == '__main__':
     main()
