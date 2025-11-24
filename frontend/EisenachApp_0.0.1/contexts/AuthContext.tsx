@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   login as apiLogin, 
   register as apiRegister, 
@@ -41,9 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Gespeicherte Auth-Daten laden und Session validieren (nur einloggen, wenn gültig)
   const loadStoredAuth = async () => {
     try {
-      const AsyncStorage = await import('@react-native-async-storage/async-storage');
-      const storedToken = await AsyncStorage.default.getItem('auth_token');
-      const storedUser = await AsyncStorage.default.getItem('user_data');
+      const storedToken = await AsyncStorage.getItem('auth_token');
+      const storedUser = await AsyncStorage.getItem('user_data');
 
       if (!storedToken || !storedUser) {
         console.log('🔓 Keine gespeicherten Anmeldedaten gefunden');
@@ -61,15 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(current);
         } else {
           console.log('❌ Token ungültig, Anmeldedaten werden gelöscht');
-          await AsyncStorage.default.removeItem('auth_token');
-          await AsyncStorage.default.removeItem('user_data');
+          await AsyncStorage.removeItem('auth_token');
+          await AsyncStorage.removeItem('user_data');
           setToken(null);
           setUser(null);
         }
       } catch (e) {
         console.error('❌ Fehler bei Token-Validierung:', e);
-        await AsyncStorage.default.removeItem('auth_token');
-        await AsyncStorage.default.removeItem('user_data');
+        await AsyncStorage.removeItem('auth_token');
+        await AsyncStorage.removeItem('user_data');
         setToken(null);
         setUser(null);
       }

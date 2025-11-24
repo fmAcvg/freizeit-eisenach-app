@@ -2,6 +2,7 @@
 // Alle Funktionen führen echte API-Aufrufe an das Backend durch
 
 import { getApiUrl } from '../config/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Hinweis: Einfaches Health-Check Caching, um unnötige Requests zu vermeiden
 let lastHealthCheckAt = 0;
@@ -229,8 +230,7 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {},
   let token = null;
   if (requireAuth) {
     try {
-      const AsyncStorage = await import('@react-native-async-storage/async-storage');
-      token = await AsyncStorage.default.getItem('auth_token');
+      token = await AsyncStorage.getItem('auth_token');
       console.log(`🔑 apiRequest: Token geladen: ${token ? 'Ja' : 'Nein'}`);
     } catch (error) {
       console.error('❌ apiRequest: Fehler beim Laden des Tokens:', error);
@@ -274,9 +274,8 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {},
         
         // AsyncStorage leeren
         try {
-          const AsyncStorage = await import('@react-native-async-storage/async-storage');
-          await AsyncStorage.default.removeItem('auth_token');
-          await AsyncStorage.default.removeItem('user_data');
+          await AsyncStorage.removeItem('auth_token');
+          await AsyncStorage.removeItem('user_data');
         } catch (storageError) {
           console.error('Fehler beim Löschen der Anmeldedaten:', storageError);
         }
@@ -679,8 +678,6 @@ export async function deleteEventComment(commentId: number): Promise<void> {
   }
 }
 
-// ========== AUTHENTIFIZIERUNG ==========
-
 // Benutzer anmelden
 export async function login(credentials: LoginRequest): Promise<AuthResponse> {
   try {
@@ -691,9 +688,8 @@ export async function login(credentials: LoginRequest): Promise<AuthResponse> {
     
     // Token im AsyncStorage speichern
     if (response.token) {
-      const AsyncStorage = await import('@react-native-async-storage/async-storage');
-      await AsyncStorage.default.setItem('auth_token', response.token);
-      await AsyncStorage.default.setItem('user_data', JSON.stringify(response.user));
+      await AsyncStorage.setItem('auth_token', response.token);
+      await AsyncStorage.setItem('user_data', JSON.stringify(response.user));
     }
     
     return response;
@@ -713,9 +709,8 @@ export async function register(userData: RegisterRequest): Promise<AuthResponse>
     
     // Token im AsyncStorage speichern
     if (response.token) {
-      const AsyncStorage = await import('@react-native-async-storage/async-storage');
-      await AsyncStorage.default.setItem('auth_token', response.token);
-      await AsyncStorage.default.setItem('user_data', JSON.stringify(response.user));
+      await AsyncStorage.setItem('auth_token', response.token);
+      await AsyncStorage.setItem('user_data', JSON.stringify(response.user));
     }
     
     return response;
@@ -788,15 +783,13 @@ export async function logout(): Promise<void> {
     }, true);
     
     // Token und Benutzerdaten aus AsyncStorage entfernen
-    const AsyncStorage = await import('@react-native-async-storage/async-storage');
-    await AsyncStorage.default.removeItem('auth_token');
-    await AsyncStorage.default.removeItem('user_data');
+    await AsyncStorage.removeItem('auth_token');
+    await AsyncStorage.removeItem('user_data');
   } catch (error) {
     console.error('Fehler beim Abmelden:', error);
     // Auch bei Fehler lokale Daten löschen
-    const AsyncStorage = await import('@react-native-async-storage/async-storage');
-    await AsyncStorage.default.removeItem('auth_token');
-    await AsyncStorage.default.removeItem('user_data');
+    await AsyncStorage.removeItem('auth_token');
+    await AsyncStorage.removeItem('user_data');
     throw error;
   }
 }
@@ -804,8 +797,7 @@ export async function logout(): Promise<void> {
 // Aktuellen Benutzer abrufen
 export async function getCurrentUser(): Promise<User | null> {
   try {
-    const AsyncStorage = await import('@react-native-async-storage/async-storage');
-    const userData = await AsyncStorage.default.getItem('user_data');
+    const userData = await AsyncStorage.getItem('user_data');
     
     if (userData) {
       return JSON.parse(userData);
@@ -813,7 +805,7 @@ export async function getCurrentUser(): Promise<User | null> {
     
     // Fallback: Benutzer vom Server abrufen
     const response = await apiRequest<User>('/auth/profile/', {}, true);
-    await AsyncStorage.default.setItem('user_data', JSON.stringify(response));
+    await AsyncStorage.setItem('user_data', JSON.stringify(response));
     return response;
   } catch (error) {
     console.error('Fehler beim Abrufen des Benutzers:', error);
@@ -841,8 +833,7 @@ export async function updateUserProfile(profileData: Partial<Profile>): Promise<
     
     // Aktualisierte Benutzerdaten im AsyncStorage speichern
     if (response.user) {
-      const AsyncStorage = await import('@react-native-async-storage/async-storage');
-      await AsyncStorage.default.setItem('user_data', JSON.stringify(response.user));
+      await AsyncStorage.setItem('user_data', JSON.stringify(response.user));
     }
     
     return response;
@@ -855,8 +846,7 @@ export async function updateUserProfile(profileData: Partial<Profile>): Promise<
 // Prüfen ob Benutzer angemeldet ist
 export async function isAuthenticated(): Promise<boolean> {
   try {
-    const AsyncStorage = await import('@react-native-async-storage/async-storage');
-    const token = await AsyncStorage.default.getItem('auth_token');
+    const token = await AsyncStorage.getItem('auth_token');
     return !!token;
   } catch (error) {
     console.error('Fehler beim Prüfen der Authentifizierung:', error);
@@ -867,8 +857,7 @@ export async function isAuthenticated(): Promise<boolean> {
 // Token abrufen
 export async function getAuthToken(): Promise<string | null> {
   try {
-    const AsyncStorage = await import('@react-native-async-storage/async-storage');
-    return await AsyncStorage.default.getItem('auth_token');
+    return await AsyncStorage.getItem('auth_token');
   } catch (error) {
     console.error('Fehler beim Abrufen des Tokens:', error);
     return null;
@@ -893,8 +882,7 @@ export async function leaveEvent(eventId: number): Promise<void> {
     // Eigene Teilnahme anhand der Teilnehmerliste (mit verschachteltem user) finden und löschen
     const response = await apiRequest<any>(`/events/${eventId}/participants/`, { method: 'GET' }, true);
     const participants = response?.results || response || [];
-    const AsyncStorage = await import('@react-native-async-storage/async-storage');
-    const meStr = await AsyncStorage.default.getItem('user_data');
+    const meStr = await AsyncStorage.getItem('user_data');
     const me = meStr ? JSON.parse(meStr) : null;
     const mine = participants.find((p: any) => p?.user?.id === me?.id);
     if (!mine) {
