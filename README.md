@@ -1,5 +1,5 @@
 ## EisenachApp – Überblick und Start
-<img src="backend\static\admin\img\eisenach-logo.png" alt="Architektur der App – Übersicht" width="300">
+<img src="backend/static/admin/img/eisenach-logo.png" alt="Architektur der App – Übersicht" width="300">
 
 Diese App habe ich im Rahmen meiner Seminarfacharbeit am Ernst‑Abbe‑Gymnasium Eisenach entwickelt. In der Arbeit erkläre ich Konzept, Ziele, Architektur und technische Entscheidungen ausführlicher. Wer tiefer einsteigen möchte, kann die Dokumentation hier öffnen: [Seminarfacharbeit (PDF)](Seminarfacharbeit.pdf).
 
@@ -138,6 +138,3 @@ So funktioniert die App „von vorne nach hinten“ – einmal in normalem Deuts
 - IP-Erkennung im Frontend: Die API-URL wird automatisch aus der Expo-Host-URI gebaut (`http://<host>:8000/api`). Bei WLAN-Wechsel ist keine manuelle Anpassung nötig. Falls doch, kann in `frontend/EisenachApp_0.0.1/config/api.ts` eine feste Basis-URL gesetzt werden.
 - Backend-Debug/CORS: In `backend/config.py` wird `debug` standardmäßig auf `False` gesetzt. Bei `True` erlaubt das Backend in den Settings (`ALLOWED_HOSTS='*'` + großzügige CORS) den Zugriff aus dem LAN für einfaches Testen. Für Produktion unbedingt auf `False` lassen.
 - Statische Dateien: Eigene Dateien liegen in `backend/static/`. Ausgeliefert werden sie in der Entwicklung über `/static/` aus `backend/staticfiles/`. Falls etwas fehlt, einmal `python manage.py collectstatic` ausführen (oder das Startskript/Docker-Setup nutzen).
-#   - b e r t r a g u n g K l e i n 
- 
- 
