@@ -1,4 +1,5 @@
 import { getApiUrl } from '../config/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Hilfsfunktion für API-Aufrufe mit Datei-Upload
 async function uploadRequest<T>(endpoint: string, formData: FormData, requireAuth: boolean = true): Promise<T> {
@@ -8,8 +9,7 @@ async function uploadRequest<T>(endpoint: string, formData: FormData, requireAut
   let token = null;
   if (requireAuth) {
     try {
-      const AsyncStorage = await import('@react-native-async-storage/async-storage');
-      token = await AsyncStorage.default.getItem('auth_token');
+      token = await AsyncStorage.getItem('auth_token');
       console.log(`🔑 uploadRequest: Token geladen: ${token ? 'Ja' : 'Nein'}`);
     } catch (error) {
       console.error('❌ uploadRequest: Fehler beim Laden des Tokens:', error);
@@ -60,8 +60,7 @@ async function deleteRequest<T>(endpoint: string, requireAuth: boolean = true): 
   let token = null;
   if (requireAuth) {
     try {
-      const AsyncStorage = await import('@react-native-async-storage/async-storage');
-      token = await AsyncStorage.default.getItem('auth_token');
+      token = await AsyncStorage.getItem('auth_token');
       console.log(`🔑 deleteRequest: Token geladen: ${token ? 'Ja' : 'Nein'}`);
     } catch (error) {
       console.error('❌ deleteRequest: Fehler beim Laden des Tokens:', error);
