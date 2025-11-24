@@ -4,3 +4,21 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# Local caches and build artifacts (do not commit)
+node_modules/
+.expo/
+.expo-shared/
+.cache/
+dist/
+build/
+web-build/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
