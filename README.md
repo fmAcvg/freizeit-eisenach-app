@@ -1,7 +1,7 @@
 ## EisenachApp – Überblick und Start
 <img src="backend/static/admin/img/eisenach-logo.png" alt="Architektur der App – Übersicht" width="300">
 
-Diese App habe ich im Rahmen meiner Seminarfacharbeit am Ernst‑Abbe‑Gymnasium Eisenach entwickelt. In der Arbeit erkläre ich Konzept, Ziele, Architektur und technische Entscheidungen ausführlicher. Wer tiefer einsteigen möchte, kann die Dokumentation hier öffnen: [Seminarfacharbeit (PDF)](Seminarfacharbeit.pdf).
+Diese App habe ich im Rahmen meiner Seminarfacharbeit am Ernst‑Abbe‑Gymnasium Eisenach entwickelt. In der Arbeit erkläre ich Konzept, Ziele, Architektur und technische Entscheidungen ausführlicher. Wer tiefer einsteigen möchte, kann die Dokumentation hier öffnen: [Seminarfacharbeit (PDF)](Seminarfacharbeit.pdf) Kapitel 5 und 6.
 
 ### Kurz‑Einleitung (aus der Seminarfacharbeit)
 In Eisenach gibt es viele Jugendangebote – von Sportvereinen über Jugendclubs bis zu Workshops. Das Problem: Informationen sind oft verstreut, unübersichtlich oder schwer auffindbar. Weil fast alle Jugendlichen ihr Smartphone nutzen, entwickle ich eine App, die Angebote bündelt und die Teilnahme einfacher macht.
