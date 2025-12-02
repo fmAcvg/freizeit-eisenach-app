@@ -892,6 +892,7 @@ export async function joinEvent(eventId: number): Promise<void> {
   try {
     await apiRequest(`/events/${eventId}/participants/`, {
       method: 'POST',
+      body: JSON.stringify({}), // Leerer JSON Body für POST-Request
     }, true);
   } catch (error) {
     console.error('Fehler beim Beitreten zum Event:', error);

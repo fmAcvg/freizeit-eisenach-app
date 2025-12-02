@@ -239,8 +239,16 @@ export default function EventDetailScreen() {
       } catch {}
       Alert.alert('Angemeldet', 'Du nimmst jetzt am Event teil.');
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Teilnahme nicht möglich (Event evtl. voll).';
-      Alert.alert('Fehler', msg);
+      // Bessere Fehlerbehandlung: Zeige die genaue Fehlermeldung vom Backend
+      let errorMessage = 'Teilnahme nicht möglich.';
+      if (e instanceof Error) {
+        errorMessage = e.message;
+        // Wenn die Fehlermeldung zu generisch ist, versuche mehr Details zu extrahieren
+        if (errorMessage.includes('400') || errorMessage.includes('API Error')) {
+          errorMessage = 'Teilnahme nicht möglich. Das Event könnte voll sein oder du erfüllst die Altersanforderungen nicht.';
+        }
+      }
+      Alert.alert('Fehler', errorMessage);
     }
   };
 
@@ -449,48 +457,53 @@ export default function EventDetailScreen() {
               </View>
             )}
 
-            {/* hauptbutton für teilnahme oder abmeldung - nicht anzeigen für den Ersteller; Gästen sichtbar (führt dann zur Anmeldung) */}
+            {/* hauptbutton für teilnahme oder abmeldung - nicht anzeigen für den Ersteller */}
             {event.created_by?.id !== user?.id && (
               <TouchableOpacity 
                 style={[
                   styles.primaryButton, 
                   { 
-                    backgroundColor: event.joined
-                      ? theme.status.error
-                      : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0))
-                        ? theme.text.muted
-                        : theme.primary.main
+                    backgroundColor: !user
+                      ? theme.text.muted
+                      : event.joined
+                        ? theme.status.error
+                        : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0))
+                          ? theme.text.muted
+                          : theme.primary.main,
+                    opacity: !user ? 0.6 : 1,
                   }
                 ]}
                 onPress={() => {
+                  // Wenn nicht angemeldet: zur Anmeldung leiten
+                  if (!user) {
+                    Alert.alert('Anmeldung erforderlich', 'Bitte melde dich an, um an Events teilzunehmen.', [
+                      { text: 'Abbrechen', style: 'cancel' },
+                      { text: 'Anmelden', onPress: () => router.replace('/(tabs)/profile') },
+                    ]);
+                    return;
+                  }
+                  
                   if (event.joined) {
-                    // wenn kein user vorhanden ist: zur anmeldung leiten statt silent fail
-                    if (!user) {
-                      Alert.alert('Anmeldung erforderlich', 'Bitte melde dich an, um dich abzumelden.', [
-                        { text: 'Abbrechen', style: 'cancel' },
-                        { text: 'Anmelden', onPress: () => router.replace('/(tabs)/profile') },
-                      ]);
-                      return;
-                    }
                     return handleUnregister();
                   }
+                  
                   const isFull = typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0);
                   if (isFull) {
                     Alert.alert('Event ausgebucht', 'Dieses Event ist bereits voll. Es sind keine Plätze mehr frei.');
                     return;
                   }
-                  // teilnehmen: falls nicht eingeloggt, zeigt handleJoin bereits einen Login-Hinweis
+                  
                   handleJoin();
                 }}
-                disabled={!event.joined && typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0)}
+                disabled={!user || (!event.joined && typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0))}
               >
                 <MaterialIcons 
-                  name={event.joined ? "exit-to-app" : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0)) ? 'block' : 'person-add'} 
+                  name={!user ? "lock" : event.joined ? "exit-to-app" : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0)) ? 'block' : 'person-add'} 
                   size={20} 
                   color="#ffffff" 
                 />
                 <Text style={styles.primaryButtonText}>
-                  {event.joined ? 'Abmelden' : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0)) ? 'Ausgebucht' : 'Teilnehmen'}
+                  {!user ? 'Anmeldung erforderlich' : event.joined ? 'Abmelden' : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0)) ? 'Ausgebucht' : 'Teilnehmen'}
                 </Text>
               </TouchableOpacity>
             )}
