@@ -4,15 +4,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Hilfsfunktion für API-Aufrufe mit Datei-Upload
 async function uploadRequest<T>(endpoint: string, formData: FormData, requireAuth: boolean = true): Promise<T> {
   const url = `${getApiUrl()}${endpoint}`;
-  console.log(`🌐 uploadRequest: POST ${url}`);
+  console.log(`uploadRequest: POST ${url}`);
   
   let token = null;
   if (requireAuth) {
     try {
       token = await AsyncStorage.getItem('auth_token');
-      console.log(`🔑 uploadRequest: Token geladen: ${token ? 'Ja' : 'Nein'}`);
+      console.log(`uploadRequest: Token geladen: ${token ? 'Ja' : 'Nein'}`);
     } catch (error) {
-      console.error('❌ uploadRequest: Fehler beim Laden des Tokens:', error);
+      console.error('uploadRequest: Fehler beim Laden des Tokens:', error);
     }
   }
   
@@ -23,14 +23,14 @@ async function uploadRequest<T>(endpoint: string, formData: FormData, requireAut
     }
     // Content-Type wird automatisch für FormData gesetzt
     
-    console.log(`📤 uploadRequest: Sende Request mit Headers:`, headers);
+    console.log(`uploadRequest: Sende Request mit Headers:`, headers);
     const response = await fetch(url, { 
       method: 'POST',
       headers,
       body: formData
     });
     
-    console.log(`📥 uploadRequest: Response Status: ${response.status} ${response.statusText}`);
+    console.log(`uploadRequest: Response Status: ${response.status} ${response.statusText}`);
     
     if (!response.ok) {
       if (response.status === 401) {
@@ -41,10 +41,10 @@ async function uploadRequest<T>(endpoint: string, formData: FormData, requireAut
     }
     
     const data = await response.json();
-    console.log(`✅ uploadRequest: JSON-Daten erhalten:`, data);
+    console.log(`uploadRequest: JSON-Daten erhalten:`, data);
     return data;
   } catch (error) {
-    console.error('❌ uploadRequest: Request Error:', error);
+    console.error('uploadRequest: Request Error:', error);
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new Error(`Netzwerk-Fehler: Backend nicht erreichbar unter ${url}. Stelle sicher, dass das Backend läuft.`);
     }
@@ -55,15 +55,15 @@ async function uploadRequest<T>(endpoint: string, formData: FormData, requireAut
 // Hilfsfunktion für DELETE-Requests
 async function deleteRequest<T>(endpoint: string, requireAuth: boolean = true): Promise<T> {
   const url = `${getApiUrl()}${endpoint}`;
-  console.log(`🌐 deleteRequest: DELETE ${url}`);
+  console.log(`deleteRequest: DELETE ${url}`);
   
   let token = null;
   if (requireAuth) {
     try {
       token = await AsyncStorage.getItem('auth_token');
-      console.log(`🔑 deleteRequest: Token geladen: ${token ? 'Ja' : 'Nein'}`);
+      console.log(`deleteRequest: Token geladen: ${token ? 'Ja' : 'Nein'}`);
     } catch (error) {
-      console.error('❌ deleteRequest: Fehler beim Laden des Tokens:', error);
+      console.error('deleteRequest: Fehler beim Laden des Tokens:', error);
     }
   }
   
@@ -75,13 +75,13 @@ async function deleteRequest<T>(endpoint: string, requireAuth: boolean = true): 
       headers['Authorization'] = `Token ${token}`;
     }
     
-    console.log(`📤 deleteRequest: Sende Request mit Headers:`, headers);
+    console.log(`deleteRequest: Sende Request mit Headers:`, headers);
     const response = await fetch(url, { 
       method: 'DELETE',
       headers
     });
     
-    console.log(`📥 deleteRequest: Response Status: ${response.status} ${response.statusText}`);
+    console.log(`deleteRequest: Response Status: ${response.status} ${response.statusText}`);
     
     if (!response.ok) {
       if (response.status === 401) {
@@ -92,10 +92,10 @@ async function deleteRequest<T>(endpoint: string, requireAuth: boolean = true): 
     }
     
     const data = await response.json();
-    console.log(`✅ deleteRequest: JSON-Daten erhalten:`, data);
+    console.log(`deleteRequest: JSON-Daten erhalten:`, data);
     return data;
   } catch (error) {
-    console.error('❌ deleteRequest: Request Error:', error);
+    console.error('deleteRequest: Request Error:', error);
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new Error(`Netzwerk-Fehler: Backend nicht erreichbar unter ${url}. Stelle sicher, dass das Backend läuft.`);
     }
@@ -106,7 +106,7 @@ async function deleteRequest<T>(endpoint: string, requireAuth: boolean = true): 
 // Profilbild hochladen
 export async function uploadProfileImage(imageUri: string): Promise<{ message: string; profile: any }> {
   try {
-    console.log('🔍 uploadProfileImage: Starte Bild-Upload für:', imageUri);
+    console.log('uploadProfileImage: Starte Bild-Upload für:', imageUri);
     
     // Validiere Bild-URI
     if (!imageUri || !imageUri.startsWith('file://') && !imageUri.startsWith('content://')) {
@@ -121,7 +121,7 @@ export async function uploadProfileImage(imageUri: string): Promise<{ message: s
     const fileExtension = fileName.split('.').pop()?.toLowerCase();
     const mimeType = fileExtension === 'png' ? 'image/png' : 'image/jpeg';
     
-    console.log('📁 Datei-Details:', { fileName, fileExtension, mimeType });
+    console.log('Datei-Details:', { fileName, fileExtension, mimeType });
     
     // Füge die Bilddatei hinzu
     formData.append('image', {
@@ -130,13 +130,13 @@ export async function uploadProfileImage(imageUri: string): Promise<{ message: s
       name: fileName,
     } as any);
     
-    console.log('📤 Sende FormData an Backend...');
+    console.log('Sende FormData an Backend...');
     const response = await uploadRequest<{ message: string; profile: any }>('/auth/profile/image/', formData, true);
-    console.log('✅ uploadProfileImage: Upload erfolgreich:', response);
+    console.log('uploadProfileImage: Upload erfolgreich:', response);
     
     return response;
   } catch (error) {
-    console.error('❌ uploadProfileImage: Fehler beim Hochladen des Profilbilds:', error);
+    console.error('uploadProfileImage: Fehler beim Hochladen des Profilbilds:', error);
     throw error;
   }
 }
@@ -144,14 +144,14 @@ export async function uploadProfileImage(imageUri: string): Promise<{ message: s
 // Profilbild löschen
 export async function deleteProfileImage(): Promise<{ message: string; profile: any }> {
   try {
-    console.log('🔍 deleteProfileImage: Starte Bild-Löschung...');
+    console.log('deleteProfileImage: Starte Bild-Löschung...');
     
     const response = await deleteRequest<{ message: string; profile: any }>('/auth/profile/image/delete/', true);
-    console.log('✅ deleteProfileImage: Löschung erfolgreich:', response);
+    console.log('deleteProfileImage: Löschung erfolgreich:', response);
     
     return response;
   } catch (error) {
-    console.error('❌ deleteProfileImage: Fehler beim Löschen des Profilbilds:', error);
+    console.error('deleteProfileImage: Fehler beim Löschen des Profilbilds:', error);
     throw error;
   }
 }

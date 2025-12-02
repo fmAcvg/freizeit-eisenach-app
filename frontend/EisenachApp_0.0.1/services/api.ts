@@ -224,16 +224,16 @@ export interface AuthResponse {
 // Hilfsfunktion für API-Aufrufe mit Authentifizierung
 export async function apiRequest<T>(endpoint: string, options: RequestInit = {}, requireAuth: boolean = false): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  console.log(`🌐 apiRequest: ${options.method || 'GET'} ${url}`);
+  console.log(`apiRequest: ${options.method || 'GET'} ${url}`);
   
   // Token aus AsyncStorage laden falls Authentifizierung erforderlich
   let token = null;
   if (requireAuth) {
     try {
       token = await AsyncStorage.getItem('auth_token');
-      console.log(`🔑 apiRequest: Token geladen: ${token ? 'Ja' : 'Nein'}`);
+      console.log(`apiRequest: Token geladen: ${token ? 'Ja' : 'Nein'}`);
     } catch (error) {
-      console.error('❌ apiRequest: Fehler beim Laden des Tokens:', error);
+      console.error('apiRequest: Fehler beim Laden des Tokens:', error);
     }
   }
   
@@ -255,14 +255,14 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {},
       headers['Authorization'] = `Token ${token}`;
     }
 
-    console.log(`📤 apiRequest: Sende Request mit Headers:`, headers);
+    console.log(`apiRequest: Sende Request mit Headers:`, headers);
 
     const response = await fetch(url, {
       headers,
       ...options,
     });
 
-    console.log(`📥 apiRequest: Response Status: ${response.status} ${response.statusText}`);
+    console.log(`apiRequest: Response Status: ${response.status} ${response.statusText}`);
 
     // Response-Body einmal klonen für mögliche Fehlerbehandlung
     const responseClone = response.clone();
@@ -270,7 +270,7 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {},
     if (!response.ok) {
       // Bei 401/403: Automatisch ausloggen, da Token ungültig oder abgelaufen ist
       if (response.status === 401 || response.status === 403) {
-        console.log('❌ Token ungültig oder abgelaufen - Benutzer wird ausgeloggt');
+        console.log('Token ungültig oder abgelaufen - Benutzer wird ausgeloggt');
         
         // AsyncStorage leeren
         try {
@@ -314,7 +314,7 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {},
         if (message) throw new Error(message);
 
         // Falls keine klare Message gefunden wurde, vollständige Antwort loggen
-        console.error('❌ apiRequest: Backend Error Response:', errorData);
+        console.error('apiRequest: Backend Error Response:', errorData);
       } catch (jsonError) {
         // Wenn JSON-Parsing fehlschlägt, verwende Status-Text
       }
@@ -327,15 +327,15 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {},
     const contentLength = response.headers.get('content-length');
     
     if (response.status === 204 || contentLength === '0' || !contentType?.includes('application/json')) {
-      console.log(`✅ apiRequest: Leere Antwort erhalten (Status: ${response.status})`);
+      console.log(`apiRequest: Leere Antwort erhalten (Status: ${response.status})`);
       return {} as T; // Für DELETE-Requests ohne Antwort - leeres Objekt zurückgeben
     }
     
     const data = await response.json();
-    console.log(`✅ apiRequest: JSON-Daten erhalten:`, data);
+    console.log(`apiRequest: JSON-Daten erhalten:`, data);
     return data;
   } catch (error) {
-    console.error('❌ apiRequest: Request Error:', error);
+    console.error('apiRequest: Request Error:', error);
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new Error(`Netzwerk-Fehler: Backend nicht erreichbar unter ${url}. Stelle sicher, dass das Backend läuft.`);
     }
@@ -434,20 +434,20 @@ export async function toggleLike(eventId: number): Promise<EventItem | undefined
 // Events abrufen die der Benutzer erstellt hat
 export async function fetchMyCreatedEvents(): Promise<EventItem[]> {
   try {
-    console.log('🔍 fetchMyCreatedEvents: Starte API-Aufruf...');
+    console.log('fetchMyCreatedEvents: Starte API-Aufruf...');
     const response = await apiRequest<any>('/events/my-created/', {
       method: 'GET',
     }, true);
-    console.log('✅ fetchMyCreatedEvents: API-Antwort erhalten:', response);
+    console.log('fetchMyCreatedEvents: API-Antwort erhalten:', response);
     
     // Handle paginated response
     const events = response?.results || response || [];
-    console.log('📊 fetchMyCreatedEvents: Events aus Pagination:', events);
-    console.log('📊 fetchMyCreatedEvents: Anzahl Events:', events?.length || 0);
+    console.log('fetchMyCreatedEvents: Events aus Pagination:', events);
+    console.log('fetchMyCreatedEvents: Anzahl Events:', events?.length || 0);
     
     return events;
   } catch (error) {
-    console.error('❌ fetchMyCreatedEvents: Fehler beim Laden der erstellten Events:', error);
+    console.error('fetchMyCreatedEvents: Fehler beim Laden der erstellten Events:', error);
     if (error instanceof Error && error.message.includes('404')) {
       throw new Error('API-Endpunkt für erstellte Events nicht gefunden. Bitte starte das Backend neu.');
     }
@@ -458,20 +458,20 @@ export async function fetchMyCreatedEvents(): Promise<EventItem[]> {
 // Events abrufen an denen der Benutzer teilnimmt
 export async function fetchMyParticipatedEvents(): Promise<EventItem[]> {
   try {
-    console.log('🔍 fetchMyParticipatedEvents: Starte API-Aufruf...');
+    console.log('fetchMyParticipatedEvents: Starte API-Aufruf...');
     const response = await apiRequest<any>('/events/my-participated/', {
       method: 'GET',
     }, true);
-    console.log('✅ fetchMyParticipatedEvents: API-Antwort erhalten:', response);
+    console.log('fetchMyParticipatedEvents: API-Antwort erhalten:', response);
     
     // Handle paginated response
     const events = response?.results || response || [];
-    console.log('📊 fetchMyParticipatedEvents: Events aus Pagination:', events);
-    console.log('📊 fetchMyParticipatedEvents: Anzahl Events:', events?.length || 0);
+    console.log('fetchMyParticipatedEvents: Events aus Pagination:', events);
+    console.log('fetchMyParticipatedEvents: Anzahl Events:', events?.length || 0);
     
     return events;
   } catch (error) {
-    console.error('❌ fetchMyParticipatedEvents: Fehler beim Laden der teilgenommenen Events:', error);
+    console.error('fetchMyParticipatedEvents: Fehler beim Laden der teilgenommenen Events:', error);
     if (error instanceof Error && error.message.includes('404')) {
       throw new Error('API-Endpunkt für Teilnahme-Events nicht gefunden. Bitte starte das Backend neu.');
     }
@@ -491,10 +491,10 @@ export async function fetchCreatorEvents(userId?: number): Promise<EventItem[]> 
 // Einzelnes Event nach ID abrufen
 export async function fetchEventById(id: number): Promise<EventItem | undefined> {
   try {
-    console.log('🔍 fetchEventById: Lade Event', id);
+    console.log('fetchEventById: Lade Event', id);
     // Event-Details sind öffentlich lesbar; kein Auth erzwingen
     const event = await apiRequest<EventItem>(`/events/${id}/`);
-    console.log('✅ fetchEventById: Event geladen:', event?.title || event?.id);
+    console.log('fetchEventById: Event geladen:', event?.title || event?.id);
     
     // Teilnehmerdaten separat laden falls Event vorhanden ist
     if (event) {
@@ -544,11 +544,11 @@ export async function fetchEventById(id: number): Promise<EventItem | undefined>
 // Event erstellen
 export async function submitEventDraft(draft: EventDraft): Promise<{ status: 'created'; id: number }> {
   try {
-    console.log('🔍 submitEventDraft: Starte Event-Erstellung...');
+    console.log('submitEventDraft: Starte Event-Erstellung...');
     
     // Wenn ein Bild vorhanden ist, FormData verwenden
     if (draft.image) {
-      console.log('📸 submitEventDraft: Event mit Bild wird erstellt...');
+      console.log('submitEventDraft: Event mit Bild wird erstellt...');
       
       const formData = new FormData();
       formData.append('title', draft.title);
@@ -581,21 +581,21 @@ export async function submitEventDraft(draft: EventDraft): Promise<{ status: 'cr
         // Content-Type wird automatisch von FormData gesetzt - nicht explizit setzen!
       }, true); // Authentifizierung erforderlich!
       
-      console.log('✅ submitEventDraft: Event mit Bild erfolgreich erstellt:', response);
+      console.log('submitEventDraft: Event mit Bild erfolgreich erstellt:', response);
       return { status: 'created', id: response.id };
     } else {
       // Ohne Bild - normales JSON
-      console.log('📝 submitEventDraft: Event ohne Bild wird erstellt...');
+      console.log('submitEventDraft: Event ohne Bild wird erstellt...');
       const response = await apiRequest<EventItem>('/events/', {
         method: 'POST',
         body: JSON.stringify(draft),
       }, true); // Authentifizierung erforderlich!
       
-      console.log('✅ submitEventDraft: Event erfolgreich erstellt:', response);
+      console.log('submitEventDraft: Event erfolgreich erstellt:', response);
       return { status: 'created', id: response.id };
     }
   } catch (error) {
-    console.error('❌ submitEventDraft: Fehler beim Erstellen des Events:', error);
+    console.error('submitEventDraft: Fehler beim Erstellen des Events:', error);
     throw error;
   }
 }
@@ -617,15 +617,15 @@ export async function updateEvent(eventId: number, updateData: Partial<EventItem
 // Datenschutz-Einstellungen aktualisieren
 export async function updatePrivacySettings(privacyData: { profile_public?: boolean; events_public?: boolean; age_visible?: boolean }): Promise<Profile> {
   try {
-    console.log('🔍 updatePrivacySettings: Starte API-Aufruf...');
+    console.log('updatePrivacySettings: Starte API-Aufruf...');
     const response = await apiRequest<Profile>('/auth/profile/', {
       method: 'PATCH',
       body: JSON.stringify(privacyData),
     }, true);
-    console.log('✅ updatePrivacySettings: API-Antwort erhalten:', response);
+    console.log('updatePrivacySettings: API-Antwort erhalten:', response);
     return response;
   } catch (error) {
-    console.error('❌ updatePrivacySettings: Fehler beim Aktualisieren der Datenschutz-Einstellungen:', error);
+    console.error('updatePrivacySettings: Fehler beim Aktualisieren der Datenschutz-Einstellungen:', error);
     throw error;
   }
 }
@@ -641,14 +641,14 @@ export async function applyForManager(app: ManagerApplication): Promise<{ status
 // Kommentare zu einem Event abrufen
 export async function fetchEventComments(eventId: number): Promise<EventComment[]> {
   try {
-    console.log(`📥 fetchEventComments: Lade Kommentare für Event ${eventId}...`);
+    console.log(`fetchEventComments: Lade Kommentare für Event ${eventId}...`);
     const response = await apiRequest<any>(`/events/${eventId}/comments/`);
     // Paginierte oder direkte Antwort unterstützen
     const comments: EventComment[] = Array.isArray(response) ? response : (response?.results || []);
-    console.log(`✅ fetchEventComments: ${comments.length} Kommentare geladen`);
+    console.log(`fetchEventComments: ${comments.length} Kommentare geladen`);
     return comments;
   } catch (error) {
-    console.error('❌ Fehler beim Laden der Kommentare:', error);
+    console.error('Fehler beim Laden der Kommentare:', error);
     return [];
   }
 }
@@ -899,16 +899,16 @@ export async function leaveEvent(eventId: number): Promise<void> {
 // Event-Teilnehmerliste abrufen (für Dashboard)
 export async function fetchEventParticipants(eventId: number): Promise<ParticipantDetail[]> {
   try {
-    console.log('🔍 fetchEventParticipants: Lade Teilnehmer für Event', eventId);
+    console.log('fetchEventParticipants: Lade Teilnehmer für Event', eventId);
     const response = await apiRequest<any>(`/events/${eventId}/participants/`, {
       method: 'GET',
     }, true);
     
-    console.log('✅ fetchEventParticipants: API-Antwort erhalten:', response);
+    console.log('fetchEventParticipants: API-Antwort erhalten:', response);
     
     // Handle paginated response
     const raw = response?.results || response || [];
-    console.log('📊 fetchEventParticipants: Teilnehmer aus Pagination:', raw);
+    console.log('fetchEventParticipants: Teilnehmer aus Pagination:', raw);
 
     // API liefert { id, user: {id, username, first_name, last_name, profile_image}, joined_at }
     const flattened: ParticipantDetail[] = raw.map((p: any) => ({
@@ -923,10 +923,10 @@ export async function fetchEventParticipants(eventId: number): Promise<Participa
 
     // Teilnehmer nach joined_at sortieren (neueste zuerst)
     const sorted = flattened.sort((a, b) => new Date(b.joined_at).getTime() - new Date(a.joined_at).getTime());
-    console.log('📊 fetchEventParticipants: Sortierte Teilnehmer:', sorted.length);
+    console.log('fetchEventParticipants: Sortierte Teilnehmer:', sorted.length);
     return sorted;
   } catch (error) {
-    console.error('❌ fetchEventParticipants: Fehler beim Laden der Teilnehmer:', error);
+    console.error('fetchEventParticipants: Fehler beim Laden der Teilnehmer:', error);
     if (error instanceof Error && error.message.includes('404')) {
       throw new Error('API-Endpunkt für Teilnehmer nicht gefunden. Bitte starte das Backend neu.');
     }
@@ -1000,7 +1000,7 @@ export async function deleteEvent(eventId: number): Promise<void> {
     }, true); // Authentifizierung erforderlich
     
     // DELETE-Request war erfolgreich (Status 204 oder ähnlich)
-    console.log('✅ Event erfolgreich gelöscht');
+    console.log('Event erfolgreich gelöscht');
   } catch (error) {
     console.error('Fehler beim Löschen des Events:', error);
     throw error;
@@ -1031,12 +1031,12 @@ export interface AgeAnalytics {
 
 export async function fetchEventAgeAnalytics(eventId: number): Promise<AgeAnalytics> {
   try {
-    console.log(`🔍 fetchEventAgeAnalytics: Lade Alters-Analytics für Event ${eventId}...`);
+    console.log(`fetchEventAgeAnalytics: Lade Alters-Analytics für Event ${eventId}...`);
     const response = await apiRequest<AgeAnalytics>(`/events/${eventId}/age-analytics/`, {}, true);
-    console.log(`✅ fetchEventAgeAnalytics: Analytics geladen:`, response);
+    console.log(`fetchEventAgeAnalytics: Analytics geladen:`, response);
     return response;
   } catch (error) {
-    console.error('❌ fetchEventAgeAnalytics: Fehler beim Laden der Alters-Analytics:', error);
+    console.error('fetchEventAgeAnalytics: Fehler beim Laden der Alters-Analytics:', error);
     throw error;
   }
 }
@@ -1068,15 +1068,15 @@ export interface CreateUserReportRequest {
 // User Report Functions
 export async function createUserReport(reportData: CreateUserReportRequest): Promise<UserReport> {
   try {
-    console.log('🔍 createUserReport: Erstelle Meldung...', reportData);
+    console.log('createUserReport: Erstelle Meldung...', reportData);
     const response = await apiRequest<UserReport>('/reports/', {
       method: 'POST',
       body: JSON.stringify(reportData),
     }, true);
-    console.log('✅ createUserReport: Meldung erstellt:', response);
+    console.log('createUserReport: Meldung erstellt:', response);
     return response;
   } catch (error) {
-    console.error('❌ createUserReport: Fehler beim Erstellen der Meldung:', error);
+    console.error('createUserReport: Fehler beim Erstellen der Meldung:', error);
     throw error;
   }
 }
@@ -1084,28 +1084,28 @@ export async function createUserReport(reportData: CreateUserReportRequest): Pro
 // Kommentar melden
 export async function reportComment(commentId: number, reason: string, description?: string): Promise<UserReport> {
   try {
-    console.log('🚩 reportComment: Melde Kommentar...', { commentId, reason });
+    console.log('reportComment: Melde Kommentar...', { commentId, reason });
     // Nutze den dedizierten Kommentar-Report-Endpunkt
     const response = await apiRequest<UserReport>(`/comments/${commentId}/report/`, {
       method: 'POST',
       body: JSON.stringify({ reason, description }),
     }, true);
-    console.log('✅ reportComment: Kommentar gemeldet:', response);
+    console.log('reportComment: Kommentar gemeldet:', response);
     return response;
   } catch (error) {
-    console.error('❌ reportComment: Fehler beim Melden des Kommentars:', error);
+    console.error('reportComment: Fehler beim Melden des Kommentars:', error);
     throw error;
   }
 }
 
 export async function getUserReports(): Promise<UserReport[]> {
   try {
-    console.log('🔍 getUserReports: Lade alle Meldungen...');
+    console.log('getUserReports: Lade alle Meldungen...');
     const response = await apiRequest<UserReport[]>('/reports/list/', {}, true);
-    console.log('✅ getUserReports: Meldungen geladen:', response);
+    console.log('getUserReports: Meldungen geladen:', response);
     return response;
   } catch (error) {
-    console.error('❌ getUserReports: Fehler beim Laden der Meldungen:', error);
+    console.error('getUserReports: Fehler beim Laden der Meldungen:', error);
     throw error;
   }
 }
@@ -1113,9 +1113,9 @@ export async function getUserReports(): Promise<UserReport[]> {
 // Freundschafts-Anfragen Funktionen
 export async function getFriendshipRequests(): Promise<FriendshipRequest[]> {
   try {
-    console.log('🔍 getFriendshipRequests: Lade Freundschafts-Anfragen...');
+    console.log('getFriendshipRequests: Lade Freundschafts-Anfragen...');
     const response = await apiRequest<any>('/friend-requests/', {}, true);
-    console.log('✅ getFriendshipRequests: Anfragen geladen:', response);
+    console.log('getFriendshipRequests: Anfragen geladen:', response);
     
     // Handle paginated response
     if (response && response.results) {
@@ -1126,49 +1126,49 @@ export async function getFriendshipRequests(): Promise<FriendshipRequest[]> {
       return [];
     }
   } catch (error) {
-    console.error('❌ getFriendshipRequests: Fehler beim Laden der Anfragen:', error);
+    console.error('getFriendshipRequests: Fehler beim Laden der Anfragen:', error);
     throw error;
   }
 }
 
 export async function sendFriendshipRequest(userId: number, message?: string): Promise<FriendshipRequest> {
   try {
-    console.log('🔍 sendFriendshipRequest: Sende Freundschafts-Anfrage...', { userId, message });
+    console.log('sendFriendshipRequest: Sende Freundschafts-Anfrage...', { userId, message });
     const response = await apiRequest<FriendshipRequest>(`/friend-requests/send/${userId}/`, {
       method: 'POST',
       body: JSON.stringify({ message }),
     }, true);
-    console.log('✅ sendFriendshipRequest: Anfrage gesendet:', response);
+    console.log('sendFriendshipRequest: Anfrage gesendet:', response);
     return response;
   } catch (error) {
-    console.error('❌ sendFriendshipRequest: Fehler beim Senden der Anfrage:', error);
+    console.error('sendFriendshipRequest: Fehler beim Senden der Anfrage:', error);
     throw error;
   }
 }
 
 export async function respondToFriendshipRequest(requestId: number, action: 'accept' | 'decline'): Promise<void> {
   try {
-    console.log('🔍 respondToFriendshipRequest: Antworte auf Anfrage...', { requestId, action });
+    console.log('respondToFriendshipRequest: Antworte auf Anfrage...', { requestId, action });
     await apiRequest(`/friend-requests/${requestId}/respond/`, {
       method: 'POST',
       body: JSON.stringify({ action }),
     }, true);
-    console.log('✅ respondToFriendshipRequest: Antwort gesendet');
+    console.log('respondToFriendshipRequest: Antwort gesendet');
   } catch (error) {
-    console.error('❌ respondToFriendshipRequest: Fehler beim Antworten:', error);
+    console.error('respondToFriendshipRequest: Fehler beim Antworten:', error);
     throw error;
   }
 }
 
 export async function cancelFriendshipRequest(requestId: number): Promise<void> {
   try {
-    console.log('🔍 cancelFriendshipRequest: Storniere Anfrage...', requestId);
+    console.log('cancelFriendshipRequest: Storniere Anfrage...', requestId);
     await apiRequest(`/friend-requests/${requestId}/`, {
       method: 'DELETE',
     }, true);
-    console.log('✅ cancelFriendshipRequest: Anfrage storniert');
+    console.log('cancelFriendshipRequest: Anfrage storniert');
   } catch (error) {
-    console.error('❌ cancelFriendshipRequest: Fehler beim Stornieren:', error);
+    console.error('cancelFriendshipRequest: Fehler beim Stornieren:', error);
     throw error;
   }
 }

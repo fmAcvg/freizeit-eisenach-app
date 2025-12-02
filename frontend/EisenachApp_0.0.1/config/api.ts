@@ -12,6 +12,13 @@ export const API_CONFIG = {
   BASE_URL: 'http://192.168.2.120:8000/api',
 };
 
+// Optionaler Override per Umgebungsvariable (z. B. Docker/CI)
+// EXPO_PUBLIC_API_URL=/api oder http://backend:8000/api
+const ENV_API_URL: string | null =
+  typeof process !== 'undefined' && (process as any)?.env?.EXPO_PUBLIC_API_URL
+    ? String((process as any).env.EXPO_PUBLIC_API_URL)
+    : null;
+
 // Versuche aus Expo/Metro-Umgebung die Host-IP herauszulesen
 function detectHostFromExpo(): string | null {
   // In Entwicklung liefert expoConfig.hostUri i. d. R. "192.168.x.y:8081"
@@ -47,6 +54,8 @@ function resolveLocalApiBase(): string {
 
 // Automatische Erkennung der Basis-URL für API-Requests
 export const getApiUrl = () => {
+  // 0) ENV hat Vorrang (z. B. im Docker-Web-Build)
+  if (ENV_API_URL) return ENV_API_URL;
   const url = resolveLocalApiBase();
   return url;
 };

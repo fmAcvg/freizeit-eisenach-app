@@ -1,13 +1,16 @@
 #!/bin/bash
+set -e
 
-# Wait for database to be ready
-echo "Waiting for database..."
-python manage.py migrate
+echo "starte backend initialisierung (sqlite, keine externe db)..."
 
-# Create superuser if it doesn't exist
-echo "Creating superuser..."
-python create_superuser.py
+echo "führe migrationen aus..."
+python manage.py migrate --noinput
 
-# Start the server
-echo "Starting Django server..."
+echo "sammle statische dateien..."
+python manage.py collectstatic --noinput
+
+echo "erstelle superuser (falls nicht vorhanden)..."
+python create_superuser.py || true
+
+echo "starte django server..."
 exec "$@"

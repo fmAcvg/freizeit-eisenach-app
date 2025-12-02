@@ -96,8 +96,11 @@ if os.getenv('ADMIN_USERNAME'):
 if os.getenv('ADMIN_EMAIL'):
     ADMIN_CONFIG['email'] = os.getenv('ADMIN_EMAIL')
 
-if os.getenv('DEBUG') == 'False':
-    DEV_CONFIG['debug'] = False
+# DEBUG aus Umgebungsvariablen robust auslesen
+# Akzeptiert: 1/true/yes/on => True, 0/false/no/off => False
+_env_debug = os.getenv('DEBUG')
+if _env_debug is not None:
+    DEV_CONFIG['debug'] = str(_env_debug).strip().lower() in ('1', 'true', 'yes', 'on')
 
 # einfache prüfung damit wir uns nicht mit blöden typos selbst ärgern
 def validate_config():

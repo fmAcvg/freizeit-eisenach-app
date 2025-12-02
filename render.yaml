@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: eisenach-backend
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/health/
+    envVars:
+      - key: DEBUG
+        value: "1"
+      # Optional: set admin credentials; if not set, defaults from backend/config.py are used
+      # - key: ADMIN_USERNAME
+      #   value: admin
+      # - key: ADMIN_EMAIL
+      #   value: admin@example.com
+      # - key: ADMIN_PASSWORD
+      #   generateValue: true
+
