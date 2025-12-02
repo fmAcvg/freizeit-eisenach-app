@@ -39,6 +39,8 @@ export default function EventDetailScreen() {
   const [comments, setComments] = React.useState<EventComment[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [friendIds, setFriendIds] = React.useState<number[]>([]);
+  // Ref um zu verhindern dass useFocusEffect die Daten überschreibt während An-/Abmeldung
+  const isUpdatingRef = React.useRef(false);
 
   const theme = useAppTheme();
   const privacy = usePrivacySettings();
@@ -96,11 +98,21 @@ export default function EventDetailScreen() {
   // Event-Daten neu laden wenn Screen fokussiert wird (z.B. nach Navigation zurück)
   useFocusEffect(
     React.useCallback(() => {
+      // Nicht neu laden wenn gerade eine An-/Abmeldung stattfindet
+      if (isUpdatingRef.current) {
+        return;
+      }
       // Nur neu laden wenn bereits ein Event geladen wurde (nicht beim ersten Mal)
       if (event) {
-        loadEventData();
+        // Kurze Verzögerung um sicherzustellen dass An-/Abmeldung abgeschlossen ist
+        const timeoutId = setTimeout(() => {
+          if (!isUpdatingRef.current) {
+            loadEventData();
+          }
+        }, 500);
+        return () => clearTimeout(timeoutId);
       }
-    }, [id, loadEventData])
+    }, [id, loadEventData, event])
   );
 
   // joined-Status nachträglich setzen, sobald der Nutzer im Kontext da ist
@@ -155,6 +167,7 @@ export default function EventDetailScreen() {
   // event anmeldung/abmeldung
   const handleUnregister = async () => {
     if (!id) return;
+    isUpdatingRef.current = true;
     try {
       await leaveEvent(parseInt(id));
       // lokal sofort aktualisieren
@@ -174,47 +187,46 @@ export default function EventDetailScreen() {
       Alert.alert('Abgemeldet', 'Du hast deine Teilnahme erfolgreich beendet.');
     } catch (e) {
       Alert.alert('Fehler', 'Abmelden fehlgeschlagen.');
+    } finally {
+      // Flag nach kurzer Verzögerung zurücksetzen
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 1000);
     }
   };
 
   const handleJoin = async () => {
     if (!id) return;
+    if (!user) {
+      Alert.alert('Anmeldung erforderlich', 'Bitte melde dich an, um teilzunehmen.', [
+        { text: 'Abbrechen', style: 'cancel' },
+        { text: 'Anmelden', onPress: () => router.replace('/(tabs)/profile') },
+      ]);
+      return;
+    }
+    // Wenn bereits angemeldet, nichts tun
+    if (event?.joined || event?.is_participant) {
+      return;
+    }
+    // Wenn Event voll ist, gar nicht erst ans Backend senden
+    const isFull = typeof event?.max_guests === 'number' && (event?.participant_count || 0) >= (event?.max_guests || 0);
+    if (isFull) {
+      Alert.alert('Event ausgebucht', 'Dieses Event ist bereits voll. Es sind keine Plätze mehr frei.');
+      return;
+    }
+    
+    isUpdatingRef.current = true;
     try {
-      if (!user) {
-        Alert.alert('Anmeldung erforderlich', 'Bitte melde dich an, um teilzunehmen.', [
-          { text: 'Abbrechen', style: 'cancel' },
-          { text: 'Anmelden', onPress: () => router.replace('/(tabs)/profile') },
-        ]);
-        return;
-      }
-      // Wenn Event voll ist, gar nicht erst ans Backend senden
-      const isFull = typeof event?.max_guests === 'number' && (event?.participant_count || 0) >= (event?.max_guests || 0);
-      if (isFull && !event?.joined) {
-        Alert.alert('Event ausgebucht', 'Dieses Event ist bereits voll. Es sind keine Plätze mehr frei.');
-        return;
-      }
       await joinEvent(parseInt(id));
-      // lokal sofort aktualisieren
-      setEvent(prev => {
-        if (!prev || !user) return prev ? { ...prev, joined: true, is_participant: true } as any : prev;
-        const already = (prev.participants || []).some(p => p.user.id === user.id);
-        const optimistic = already ? (prev.participants || []) : ([
-          {
-            id: -Math.floor(Math.random() * 1000000),
-            joined_at: new Date().toISOString(),
-            user: {
-              id: user.id,
-              username: user.username,
-              first_name: user.first_name,
-              last_name: user.last_name,
-              profile_image: undefined,
-            }
-          },
-          ...((prev.participants || []))
-        ]);
-        return { ...prev, joined: true, is_participant: true, participants: optimistic, participant_count: (prev.participant_count || 0) + (already ? 0 : 1) } as any;
-      });
       // Event-Daten vollständig neu laden um sicherzustellen dass is_participant korrekt ist
+      const refreshedEvent = await fetchEventById(parseInt(id));
+      if (refreshedEvent) {
+        const isJoined = !!(refreshedEvent.is_participant ?? refreshedEvent.participants?.some(p => p.user.id === user?.id));
+        setEvent({ ...refreshedEvent, joined: isJoined, is_participant: refreshedEvent.is_participant ?? isJoined });
+      }
+      Alert.alert('Angemeldet', 'Du nimmst jetzt am Event teil.');
+    } catch (e) {
+      // Bei Fehler: Event-Daten neu laden um korrekten Status zu bekommen
       try {
         const refreshedEvent = await fetchEventById(parseInt(id));
         if (refreshedEvent) {
@@ -222,8 +234,6 @@ export default function EventDetailScreen() {
           setEvent({ ...refreshedEvent, joined: isJoined, is_participant: refreshedEvent.is_participant ?? isJoined });
         }
       } catch {}
-      Alert.alert('Angemeldet', 'Du nimmst jetzt am Event teil.');
-    } catch (e) {
       // Bessere Fehlerbehandlung: Zeige die genaue Fehlermeldung vom Backend
       let errorMessage = 'Teilnahme nicht möglich.';
       if (e instanceof Error) {
@@ -234,6 +244,11 @@ export default function EventDetailScreen() {
         }
       }
       Alert.alert('Fehler', errorMessage);
+    } finally {
+      // Flag nach kurzer Verzögerung zurücksetzen
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 1000);
     }
   };
 
@@ -443,55 +458,58 @@ export default function EventDetailScreen() {
             )}
 
             {/* hauptbutton für teilnahme oder abmeldung - nicht anzeigen für den Ersteller */}
-            {event.created_by?.id !== user?.id && (
-              <TouchableOpacity 
-                style={[
-                  styles.primaryButton, 
-                  { 
-                    backgroundColor: !user
-                      ? theme.text.muted
-                      : event.joined
-                        ? theme.status.error
-                        : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0))
-                          ? theme.text.muted
-                          : theme.primary.main,
-                    opacity: !user ? 0.6 : 1,
-                  }
-                ]}
-                onPress={() => {
-                  // Wenn nicht angemeldet: zur Anmeldung leiten
-                  if (!user) {
-                    Alert.alert('Anmeldung erforderlich', 'Bitte melde dich an, um an Events teilzunehmen.', [
-                      { text: 'Abbrechen', style: 'cancel' },
-                      { text: 'Anmelden', onPress: () => router.replace('/(tabs)/profile') },
-                    ]);
-                    return;
-                  }
-                  
-                  if (event.joined) {
-                    return handleUnregister();
-                  }
-                  
-                  const isFull = typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0);
-                  if (isFull) {
-                    Alert.alert('Event ausgebucht', 'Dieses Event ist bereits voll. Es sind keine Plätze mehr frei.');
-                    return;
-                  }
-                  
-                  handleJoin();
-                }}
-                disabled={!user || (!event.joined && typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0))}
-              >
-                <MaterialIcons 
-                  name={!user ? "lock" : event.joined ? "exit-to-app" : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0)) ? 'block' : 'person-add'} 
-                  size={20} 
-                  color="#ffffff" 
-                />
-                <Text style={styles.primaryButtonText}>
-                  {!user ? 'Anmeldung erforderlich' : event.joined ? 'Abmelden' : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0)) ? 'Ausgebucht' : 'Teilnehmen'}
-                </Text>
-              </TouchableOpacity>
-            )}
+            {event.created_by?.id !== user?.id && (() => {
+              const isParticipant = !!(event.joined || event.is_participant);
+              return (
+                <TouchableOpacity 
+                  style={[
+                    styles.primaryButton, 
+                    { 
+                      backgroundColor: !user
+                        ? theme.text.muted
+                        : isParticipant
+                          ? theme.status.error
+                          : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0))
+                            ? theme.text.muted
+                            : theme.primary.main,
+                      opacity: !user ? 0.6 : 1,
+                    }
+                  ]}
+                  onPress={() => {
+                    // Wenn nicht angemeldet: zur Anmeldung leiten
+                    if (!user) {
+                      Alert.alert('Anmeldung erforderlich', 'Bitte melde dich an, um an Events teilzunehmen.', [
+                        { text: 'Abbrechen', style: 'cancel' },
+                        { text: 'Anmelden', onPress: () => router.replace('/(tabs)/profile') },
+                      ]);
+                      return;
+                    }
+                    
+                    if (isParticipant) {
+                      return handleUnregister();
+                    }
+                    
+                    const isFull = typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0);
+                    if (isFull) {
+                      Alert.alert('Event ausgebucht', 'Dieses Event ist bereits voll. Es sind keine Plätze mehr frei.');
+                      return;
+                    }
+                    
+                    handleJoin();
+                  }}
+                  disabled={!user || (!isParticipant && typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0))}
+                >
+                  <MaterialIcons 
+                    name={!user ? "lock" : isParticipant ? "exit-to-app" : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0)) ? 'block' : 'person-add'} 
+                    size={20} 
+                    color="#ffffff" 
+                  />
+                  <Text style={styles.primaryButtonText}>
+                    {!user ? 'Anmeldung erforderlich' : isParticipant ? 'Abmelden' : (typeof event.max_guests === 'number' && (event.participant_count || 0) >= (event.max_guests || 0)) ? 'Ausgebucht' : 'Teilnehmen'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })()}
 
             {/* weiterleitung zu weiteren events */}
             <Link href="/(tabs)" asChild>
