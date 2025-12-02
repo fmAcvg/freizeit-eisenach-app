@@ -1,5 +1,5 @@
 // import der expo router komponenten für navigation
-import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { Link, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -48,48 +48,60 @@ export default function EventDetailScreen() {
   const textColor = theme.text.primary;
   const mutedColor = theme.text.muted;
 
-  // event daten und kommentare beim ersten laden abrufen
-  React.useEffect(() => {
+  // Funktion zum Laden der Event-Daten (wiederverwendbar)
+  const loadEventData = React.useCallback(async () => {
     if (!id) return;
     
-    const loadEventData = async () => {
-      try {
-        // event und kommentare parallel laden für bessere performance
-        const eventId = parseInt(id);
-        // zusätzlich die freunde laden um sie in der teilnehmerliste zu markieren
-        // Ohne Auth: keine Requests die Auth brauchen
-        const [eventData, commentsData] = await Promise.all([
-          fetchEventById(eventId),
-          fetchEventComments(eventId),
-        ]);
-        
-        // joined-status aus backend-flag is_participant ODER teilnehmerliste ableiten
-        // erklärung: Backend liefert jetzt is_participant, das ist die zuverlässigste Quelle
-        const isJoined = !!(eventData?.is_participant ?? eventData?.joined ?? eventData?.participants?.some(p => p.user.id === user?.id));
-        setEvent(eventData ? { ...eventData, joined: isJoined, is_participant: eventData.is_participant ?? isJoined } : null);
-        setComments(commentsData ?? []);
-        // friendIds nur laden, wenn eingeloggt
-        if (user) {
-          try {
-            const fl = await fetchFriends();
-            setFriendIds(Array.isArray(fl) ? fl.map(f => f.id) : []);
-          } catch {
-            setFriendIds([]);
-          }
-        } else {
+    try {
+      setLoading(true);
+      // event und kommentare parallel laden für bessere performance
+      const eventId = parseInt(id);
+      // zusätzlich die freunde laden um sie in der teilnehmerliste zu markieren
+      // Ohne Auth: keine Requests die Auth brauchen
+      const [eventData, commentsData] = await Promise.all([
+        fetchEventById(eventId),
+        fetchEventComments(eventId),
+      ]);
+      
+      // joined-status aus backend-flag is_participant ODER teilnehmerliste ableiten
+      // erklärung: Backend liefert jetzt is_participant, das ist die zuverlässigste Quelle
+      const isJoined = !!(eventData?.is_participant ?? eventData?.joined ?? eventData?.participants?.some(p => p.user.id === user?.id));
+      setEvent(eventData ? { ...eventData, joined: isJoined, is_participant: eventData.is_participant ?? isJoined } : null);
+      setComments(commentsData ?? []);
+      // friendIds nur laden, wenn eingeloggt
+      if (user) {
+        try {
+          const fl = await fetchFriends();
+          setFriendIds(Array.isArray(fl) ? fl.map(f => f.id) : []);
+        } catch {
           setFriendIds([]);
         }
-      } catch (error) {
-        console.error('❌ Error loading event data:', error);
-        setEvent(null);
-        setComments([]);
-      } finally {
-        setLoading(false);
+      } else {
+        setFriendIds([]);
       }
-    };
+    } catch (error) {
+      console.error('❌ Error loading event data:', error);
+      setEvent(null);
+      setComments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [id, user?.id]);
 
+  // event daten und kommentare beim ersten laden abrufen
+  React.useEffect(() => {
     loadEventData();
   }, [id]);
+
+  // Event-Daten neu laden wenn Screen fokussiert wird (z.B. nach Navigation zurück)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Nur neu laden wenn bereits ein Event geladen wurde (nicht beim ersten Mal)
+      if (event) {
+        loadEventData();
+      }
+    }, [id, loadEventData])
+  );
 
   // joined-Status nachträglich setzen, sobald der Nutzer im Kontext da ist
   // Hintergrund: Wenn die App frisch geöffnet wird, sind Event-Teilnehmer schon vom Backend geladen,
@@ -151,27 +163,13 @@ export default function EventDetailScreen() {
         const filtered = (prev.participants || []).filter(p => p.user.id !== user?.id);
         return { ...prev, joined: false, is_participant: false, participants: filtered, participant_count: Math.max(0, (prev.participant_count || 0) - 1) } as any;
       });
-      // backend-stand nachladen (robust gegen rennen)
+      // Event-Daten vollständig neu laden um sicherzustellen dass is_participant korrekt ist
       try {
-        const refreshed = await fetchEventParticipants(parseInt(id));
-        // refreshed ist ParticipantDetail[]; wir mappen zurück in EventParticipant-Form
-        setEvent(prev => prev ? { 
-          ...prev, 
-          participants: refreshed.map(p => ({
-            id: p.id,
-            joined_at: p.joined_at,
-            user: {
-              id: p.user_id,
-              username: p.username,
-              first_name: p.first_name,
-              last_name: p.last_name,
-              profile_image: p.profile_image,
-            }
-          })), 
-          participant_count: refreshed.length,
-          joined: refreshed.some(p => p.user_id === user?.id),
-          is_participant: refreshed.some(p => p.user_id === user?.id)
-        } : prev);
+        const refreshedEvent = await fetchEventById(parseInt(id));
+        if (refreshedEvent) {
+          const isJoined = !!(refreshedEvent.is_participant ?? refreshedEvent.participants?.some(p => p.user.id === user?.id));
+          setEvent({ ...refreshedEvent, joined: isJoined, is_participant: refreshedEvent.is_participant ?? isJoined });
+        }
       } catch {}
       Alert.alert('Abgemeldet', 'Du hast deine Teilnahme erfolgreich beendet.');
     } catch (e) {
@@ -216,26 +214,13 @@ export default function EventDetailScreen() {
         ]);
         return { ...prev, joined: true, is_participant: true, participants: optimistic, participant_count: (prev.participant_count || 0) + (already ? 0 : 1) } as any;
       });
-      // backend-stand nachladen (damit id/anzahl korrekt sind)
+      // Event-Daten vollständig neu laden um sicherzustellen dass is_participant korrekt ist
       try {
-        const refreshed = await fetchEventParticipants(parseInt(id));
-        setEvent(prev => prev ? { 
-          ...prev, 
-          participants: refreshed.map(p => ({
-            id: p.id,
-            joined_at: p.joined_at,
-            user: {
-              id: p.user_id,
-              username: p.username,
-              first_name: p.first_name,
-              last_name: p.last_name,
-              profile_image: p.profile_image,
-            }
-          })), 
-          participant_count: refreshed.length,
-          joined: refreshed.some(p => p.user_id === user?.id),
-          is_participant: refreshed.some(p => p.user_id === user?.id)
-        } : prev);
+        const refreshedEvent = await fetchEventById(parseInt(id));
+        if (refreshedEvent) {
+          const isJoined = !!(refreshedEvent.is_participant ?? refreshedEvent.participants?.some(p => p.user.id === user?.id));
+          setEvent({ ...refreshedEvent, joined: isJoined, is_participant: refreshedEvent.is_participant ?? isJoined });
+        }
       } catch {}
       Alert.alert('Angemeldet', 'Du nimmst jetzt am Event teil.');
     } catch (e) {

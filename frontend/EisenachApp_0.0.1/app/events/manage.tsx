@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAppTheme } from '@/hooks/use-app-theme';
@@ -27,6 +27,16 @@ export default function EventManagementScreen() {
   React.useEffect(() => {
     loadEvents();
   }, []);
+
+  // Events neu laden wenn Screen fokussiert wird (z.B. nach Navigation zurück)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Nur neu laden wenn bereits Events geladen wurden (nicht beim ersten Mal)
+      if (createdEvents.length > 0 || participatedEvents.length > 0) {
+        loadEvents();
+      }
+    }, [])
+  );
 
   const loadEvents = async () => {
     try {
