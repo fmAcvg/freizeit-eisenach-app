@@ -507,9 +507,10 @@ export async function fetchCreatorEvents(userId?: number): Promise<EventItem[]> 
 export async function fetchEventById(id: number): Promise<EventItem | undefined> {
   try {
     console.log('fetchEventById: Lade Event', id);
-    // Event-Details sind öffentlich lesbar; kein Auth erzwingen
-    const event = await apiRequest<EventItem>(`/events/${id}/`);
-    console.log('fetchEventById: Event geladen:', event?.title || event?.id);
+    // Prüfe ob Benutzer angemeldet ist - wenn ja, mit Auth laden damit is_participant korrekt ist
+    const authed = await isAuthenticated();
+    const event = await apiRequest<EventItem>(`/events/${id}/`, {}, authed);
+    console.log('fetchEventById: Event geladen:', event?.title || event?.id, 'is_participant:', event?.is_participant);
     
     // Teilnehmerdaten separat laden falls Event vorhanden ist
     if (event) {
@@ -548,7 +549,12 @@ export async function fetchEventById(id: number): Promise<EventItem | undefined>
           // joined-Status auch aus Teilnehmerliste ableiten (als Fallback)
           const userData = await getCurrentUser();
           if (userData) {
-            event.joined = event.joined || participants.some((p: any) => p.user_id === userData.id);
+            const isInParticipants = participants.some((p: any) => p.user_id === userData.id);
+            event.joined = event.joined || isInParticipants;
+            // Wenn in Teilnehmerliste aber is_participant false, manuell setzen
+            if (isInParticipants && !event.is_participant) {
+              event.is_participant = true;
+            }
           }
         }
       } catch (error) {

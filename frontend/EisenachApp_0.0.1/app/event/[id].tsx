@@ -41,6 +41,8 @@ export default function EventDetailScreen() {
   const [friendIds, setFriendIds] = React.useState<number[]>([]);
   // Ref um zu verhindern dass useFocusEffect die Daten überschreibt während An-/Abmeldung
   const isUpdatingRef = React.useRef(false);
+  // Ref um zu verfolgen ob Event bereits einmal geladen wurde
+  const hasLoadedRef = React.useRef(false);
 
   const theme = useAppTheme();
   const privacy = usePrivacySettings();
@@ -92,28 +94,33 @@ export default function EventDetailScreen() {
 
   // event daten und kommentare beim ersten laden abrufen
   React.useEffect(() => {
+    hasLoadedRef.current = false; // Reset beim Wechsel des Events
     loadEventData();
-  }, [id]);
+  }, [id, loadEventData]);
 
-  // Event-Daten neu laden wenn Screen fokussiert wird (z.B. nach Navigation zurück)
+  // Event-Daten neu laden wenn Screen fokussiert wird (nur wenn nicht gerade aktualisiert wird)
   useFocusEffect(
     React.useCallback(() => {
-      // Nicht neu laden wenn gerade eine An-/Abmeldung stattfindet
-      if (isUpdatingRef.current) {
+      // Nicht neu laden wenn gerade eine An-/Abmeldung stattfindet oder beim ersten Laden
+      if (isUpdatingRef.current || !hasLoadedRef.current) {
         return;
       }
-      // Nur neu laden wenn bereits ein Event geladen wurde (nicht beim ersten Mal)
-      if (event) {
-        // Kurze Verzögerung um sicherzustellen dass An-/Abmeldung abgeschlossen ist
-        const timeoutId = setTimeout(() => {
-          if (!isUpdatingRef.current) {
-            loadEventData();
-          }
-        }, 500);
-        return () => clearTimeout(timeoutId);
-      }
-    }, [id, loadEventData, event])
+      // Nur neu laden wenn bereits ein Event geladen wurde und nicht gerade aktualisiert wird
+      const timeoutId = setTimeout(() => {
+        if (!isUpdatingRef.current && hasLoadedRef.current) {
+          loadEventData();
+        }
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    }, [loadEventData])
   );
+  
+  // Markiere dass Event geladen wurde
+  React.useEffect(() => {
+    if (event && !loading) {
+      hasLoadedRef.current = true;
+    }
+  }, [event?.id, loading]);
 
   // joined-Status nachträglich setzen, sobald der Nutzer im Kontext da ist
   // Hintergrund: Wenn die App frisch geöffnet wird, sind Event-Teilnehmer schon vom Backend geladen,
@@ -216,17 +223,38 @@ export default function EventDetailScreen() {
     }
     
     isUpdatingRef.current = true;
+    // SOFORT Status setzen - optimistisches Update
+    setEvent(prev => {
+      if (!prev) return prev;
+      return { ...prev, joined: true, is_participant: true } as any;
+    });
+    
     try {
       await joinEvent(parseInt(id));
+      // Kurze Verzögerung damit Backend die Anmeldung verarbeitet hat
+      await new Promise(resolve => setTimeout(resolve, 200));
       // Event-Daten vollständig neu laden um sicherzustellen dass is_participant korrekt ist
       const refreshedEvent = await fetchEventById(parseInt(id));
       if (refreshedEvent) {
-        const isJoined = !!(refreshedEvent.is_participant ?? refreshedEvent.participants?.some(p => p.user.id === user?.id));
-        setEvent({ ...refreshedEvent, joined: isJoined, is_participant: refreshedEvent.is_participant ?? isJoined });
+        // is_participant sollte jetzt true sein vom Backend
+        const isJoined = !!(refreshedEvent.is_participant ?? true);
+        setEvent({ 
+          ...refreshedEvent, 
+          joined: isJoined, 
+          is_participant: refreshedEvent.is_participant ?? true
+        });
+        console.log('✅ Nach Anmeldung - is_participant:', refreshedEvent.is_participant, 'joined:', isJoined);
+        // Wenn Backend immer noch false zurückgibt, manuell auf true setzen
+        if (!refreshedEvent.is_participant) {
+          console.warn('⚠️ Backend gibt is_participant=false zurück nach Anmeldung - setze manuell auf true');
+          setEvent(prev => prev ? { ...prev, joined: true, is_participant: true } as any : prev);
+        }
       }
       Alert.alert('Angemeldet', 'Du nimmst jetzt am Event teil.');
     } catch (e) {
-      // Bei Fehler: Event-Daten neu laden um korrekten Status zu bekommen
+      // Bei Fehler: Status zurücksetzen
+      setEvent(prev => prev ? { ...prev, joined: false, is_participant: false } as any : prev);
+      // Event-Daten neu laden um korrekten Status zu bekommen
       try {
         const refreshedEvent = await fetchEventById(parseInt(id));
         if (refreshedEvent) {
