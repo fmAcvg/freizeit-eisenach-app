@@ -102,7 +102,7 @@ export function EventCard({
             <MaterialIcons name="schedule" size={16} color={accent} />
             <Text style={[styles.pillText, { color: accent }]}>{whenLabel}</Text>
           </View>
-          {showJoinedBadge && event.participant_count > 0 ? (
+          {showJoinedBadge && (event.joined || event.is_participant) ? (
             <View style={[styles.pill, styles.joinedPill]}>
               <MaterialIcons name="check" size={16} color={accent} />
               <Text style={[styles.joinedText, { color: accent }]}>Angemeldet</Text>

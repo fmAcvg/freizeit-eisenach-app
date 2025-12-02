@@ -59,13 +59,14 @@ class EventSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()  # Bild-URL (berechnet aus image oder image_url)
     can_view_location = serializers.SerializerMethodField()  # Darf der Anfragende Ort/Kontakt sehen?
     friend_participants_count = serializers.SerializerMethodField()  # Anzahl Freund-Teilnehmer (nur bei Friends-Endpoint sinnvoll)
+    is_participant = serializers.SerializerMethodField()  # Ist der aktuelle Nutzer Teilnehmer?
     
     class Meta:
         model = Event
         fields = [
             'id', 'title', 'description', 'location', 'date', 'image', 'image_url', 'cost',
             'contact_info', 'max_guests', 'min_age', 'status', 'created_by', 'created_at', 'updated_at',
-            'published_at', 'participants', 'participant_count', 'likes_count', 'comments_count', 'can_view_location', 'friend_participants_count'
+            'published_at', 'participants', 'participant_count', 'likes_count', 'comments_count', 'can_view_location', 'friend_participants_count', 'is_participant'
         ]  # Alle Event-Felder
         read_only_fields = ['id', 'created_at', 'updated_at', 'participants', 'published_at', 'image_url']  # Automatische Felder
     
@@ -114,6 +115,13 @@ class EventSerializer(serializers.ModelSerializer):
     def get_friend_participants_count(self, obj):
         # Wenn vom QuerySet annotiert, diesen Wert nutzen; sonst 0
         return getattr(obj, 'friend_participants_count', 0)
+    
+    def get_is_participant(self, obj):
+        # Prüft ob der aktuelle Nutzer Teilnehmer des Events ist
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return EventParticipant.objects.filter(event=obj, user=request.user).exists()
     
     def create(self, validated_data):
         # Beim Erstellen einer Veranstaltung wird automatisch der aktuelle Benutzer als Ersteller gesetzt

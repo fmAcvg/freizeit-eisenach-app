@@ -52,7 +52,8 @@ export type EventItem = {
   comments_count: number;
   participant_count: number;
   friend_participants_count?: number;
-  joined?: boolean; // Client-seitiges Hilfsfeld für UI-Zustand
+  is_participant?: boolean; // Backend-Feld: Ist der aktuelle Nutzer Teilnehmer?
+  joined?: boolean; // Client-seitiges Hilfsfeld für UI-Zustand (wird aus is_participant abgeleitet)
   created_by: {
     id: number;
     username: string;
@@ -368,6 +369,8 @@ export async function fetchEvents(): Promise<EventItem[]> {
       participant_count: event.participant_count || 0,
       comments_count: event.comments_count || 0,
       participants: event.participants || [], // Teilnehmerdaten hinzufügen falls vorhanden
+      is_participant: event.is_participant ?? false, // Backend-Feld für Teilnahme-Status
+      joined: event.is_participant ?? event.joined ?? false, // joined aus is_participant ableiten falls vorhanden
     }));
     
     return validEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -384,7 +387,11 @@ export async function fetchEventsFiltered(filter: 'friends' | 'upcoming' | 'tren
     if (filter === 'friends') {
       // Serverseitig gefilterte Events, an denen Freunde teilnehmen
       const response = await apiRequest<any>('/events/friends/', { method: 'GET' }, true);
-      const events: EventItem[] = response?.results || response || [];
+      const events: EventItem[] = (response?.results || response || []).map((event: any) => ({
+        ...event,
+        is_participant: event.is_participant ?? false,
+        joined: event.is_participant ?? event.joined ?? false,
+      }));
       return (Array.isArray(events) ? events : []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 
@@ -441,7 +448,11 @@ export async function fetchMyCreatedEvents(): Promise<EventItem[]> {
     console.log('fetchMyCreatedEvents: API-Antwort erhalten:', response);
     
     // Handle paginated response
-    const events = response?.results || response || [];
+    const events = (response?.results || response || []).map((event: any) => ({
+      ...event,
+      is_participant: event.is_participant ?? false,
+      joined: event.is_participant ?? event.joined ?? false,
+    }));
     console.log('fetchMyCreatedEvents: Events aus Pagination:', events);
     console.log('fetchMyCreatedEvents: Anzahl Events:', events?.length || 0);
     
@@ -465,7 +476,11 @@ export async function fetchMyParticipatedEvents(): Promise<EventItem[]> {
     console.log('fetchMyParticipatedEvents: API-Antwort erhalten:', response);
     
     // Handle paginated response
-    const events = response?.results || response || [];
+    const events = (response?.results || response || []).map((event: any) => ({
+      ...event,
+      is_participant: event.is_participant ?? true, // Bei my-participated sind alle Events, an denen der Nutzer teilnimmt
+      joined: event.is_participant ?? event.joined ?? true,
+    }));
     console.log('fetchMyParticipatedEvents: Events aus Pagination:', events);
     console.log('fetchMyParticipatedEvents: Anzahl Events:', events?.length || 0);
     
@@ -498,6 +513,9 @@ export async function fetchEventById(id: number): Promise<EventItem | undefined>
     
     // Teilnehmerdaten separat laden falls Event vorhanden ist
     if (event) {
+      // joined-Status aus Backend-Feld is_participant ableiten
+      event.joined = event.is_participant ?? event.joined ?? false;
+      
       try {
         // Nur für angemeldete Nutzer Teilnehmerdaten laden (Endpoint erfordert Auth)
         const authed = await isAuthenticated();
@@ -527,6 +545,11 @@ export async function fetchEventById(id: number): Promise<EventItem | undefined>
               user,
             };
           });
+          // joined-Status auch aus Teilnehmerliste ableiten (als Fallback)
+          const userData = await getCurrentUser();
+          if (userData) {
+            event.joined = event.joined || participants.some((p: any) => p.user_id === userData.id);
+          }
         }
       } catch (error) {
         console.log('Teilnehmerdaten konnten nicht geladen werden (Gast oder Fehler):', error);
