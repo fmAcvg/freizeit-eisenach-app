@@ -38,6 +38,27 @@ export async function testBackendConnection(): Promise<boolean> {
 // Basis-URL für das Backend - flexibel für verschiedene Umgebungen
 const API_BASE_URL = getApiUrl();
 
+// Hilfsfunktion um relative Bild-URLs in absolute URLs umzuwandeln
+// Dies ist notwendig, damit Bilder auch funktionieren, wenn die App über einen Render-Link geöffnet wird
+export function getAbsoluteImageUrl(imageUrl?: string): string | undefined {
+  if (!imageUrl) return undefined;
+  
+  // Wenn die URL bereits absolut ist (beginnt mit http:// oder https://), direkt zurückgeben
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // Backend-Base-URL ohne /api für Media-Dateien
+  // Die API-URL ist z.B. "https://freizeit-eisenach-app-1.onrender.com/api"
+  // Die Media-URL sollte sein: "https://freizeit-eisenach-app-1.onrender.com"
+  const baseUrl = API_BASE_URL.replace('/api', '');
+  
+  // Relative URL normalisieren (entferne führenden Slash wenn vorhanden, füge einen hinzu wenn nicht)
+  const normalizedPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+  
+  return `${baseUrl}${normalizedPath}`;
+}
+
 // Typdefinitionen für Events und verwandte Daten (angepasst an Django-Backend)
 export type EventItem = {
   id: number;

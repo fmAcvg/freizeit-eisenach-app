@@ -17,7 +17,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 // import der eigenen komponenten und services
 import { ThemedText } from '@/components/themed-text';
-import { fetchEventById, type EventItem, fetchEventComments, addEventComment, deleteEventComment, reportComment, type EventComment, fetchFriends, joinEvent, leaveEvent, fetchEventParticipants } from '@/services/api';
+import { fetchEventById, type EventItem, fetchEventComments, addEventComment, deleteEventComment, reportComment, type EventComment, fetchFriends, joinEvent, leaveEvent, fetchEventParticipants, getAbsoluteImageUrl } from '@/services/api';
 import { router } from 'expo-router';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { ParticipantsList } from '@/components/cards/ParticipantsList';
@@ -382,7 +382,7 @@ export default function EventDetailScreen() {
           {event.image_url && (
             <Image
               source={{
-                uri: event.image_url,
+                uri: getAbsoluteImageUrl(event.image_url) || event.image_url,
               }}
               style={styles.hero}
             />
