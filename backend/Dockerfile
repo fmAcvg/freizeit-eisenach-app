@@ -8,11 +8,10 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies
+# Install minimal system dependencies (build tools for wheels like Pillow)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
-        libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -37,4 +36,4 @@ EXPOSE 8000
 ENTRYPOINT ["./docker-entrypoint.sh"]
 
 # Run the application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["bash", "-lc", "python manage.py runserver 0.0.0.0:${PORT:-8000}"]

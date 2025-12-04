@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 
 // Import der eigenen Typen und Hooks
 import type { EventItem } from '@/services/api';
+import { getAbsoluteImageUrl } from '@/services/api';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { usePrivacySettings } from '@/hooks/use-privacy-settings';
 import { useAuth } from '@/contexts/AuthContext';
@@ -89,7 +90,7 @@ export function EventCard({
         <View style={styles.imageWrap}>
           <Image 
             source={{ 
-              uri: event.image_url 
+              uri: getAbsoluteImageUrl(event.image_url) || event.image_url
             }} 
             style={styles.image} 
           />
@@ -102,7 +103,7 @@ export function EventCard({
             <MaterialIcons name="schedule" size={16} color={accent} />
             <Text style={[styles.pillText, { color: accent }]}>{whenLabel}</Text>
           </View>
-          {showJoinedBadge && event.participant_count > 0 ? (
+          {showJoinedBadge && (event.joined || event.is_participant) ? (
             <View style={[styles.pill, styles.joinedPill]}>
               <MaterialIcons name="check" size={16} color={accent} />
               <Text style={[styles.joinedText, { color: accent }]}>Angemeldet</Text>
@@ -159,7 +160,7 @@ export function EventCard({
                   <View style={styles.participantInfo}>
                     {participant.user.profile_image ? (
                       <Image 
-                        source={{ uri: participant.user.profile_image }} 
+                        source={{ uri: getAbsoluteImageUrl(participant.user.profile_image) || participant.user.profile_image }} 
                         style={styles.participantAvatar}
                       />
                     ) : (

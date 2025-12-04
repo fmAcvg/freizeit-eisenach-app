@@ -179,8 +179,10 @@ REST_FRAMEWORK = {
 if dev_config.get('debug', True):
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOWED_ORIGINS = dev_config.get('cors_allowed_origins', [])
+    CSRF_TRUSTED_ORIGINS = dev_config.get('csrf_trusted_origins', [])
 else:
     CORS_ALLOWED_ORIGINS = dev_config['cors_allowed_origins']
+    CSRF_TRUSTED_ORIGINS = dev_config.get('csrf_trusted_origins', [])
 
 CORS_ALLOW_CREDENTIALS = True  # cookies/autorisation mitschicken erlauben
 

@@ -56,18 +56,18 @@ export default function ProfileScreen() {
   const loadProfile = async () => {
     // Abbrechen wenn kein User angemeldet ist
     if (!user) {
-      console.log('⚠️ Kein Benutzer angemeldet - Profil wird nicht geladen');
+      console.log('Kein Benutzer angemeldet - Profil wird nicht geladen');
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      console.log('📥 Lade Profil-Daten für:', user.username);
+      console.log('Lade Profil-Daten für:', user.username);
       const profileData = await getUserProfile();
       
       if (profileData) {
-        console.log('✅ Profil-Daten erfolgreich geladen');
+        console.log('Profil-Daten erfolgreich geladen');
         setProfile(profileData);
         setProfileName(`${profileData.user.first_name} ${profileData.user.last_name}`);
         setProfileBio(profileData.bio || 'Event Enthusiast aus Eisenach');
@@ -75,17 +75,17 @@ export default function ProfileScreen() {
         // Setze Profilbild-URL
         if (profileData.avatar) {
           const imageUrl = getProfileImageUrl(profileData.avatar);
-          console.log('🖼️ Profilbild-Debug:');
+          console.log('Profilbild-Debug:');
           console.log('  - Avatar-Pfad:', profileData.avatar);
           console.log('  - Konstruierte URL:', imageUrl);
           setProfileImageUrl(imageUrl);
         } else {
-          console.log('🖼️ Kein Avatar im Profil gefunden');
+          console.log('Kein Avatar im Profil gefunden');
           setProfileImageUrl(null);
         }
       }
     } catch (error) {
-      console.error('❌ Fehler beim Laden des Profils:', error);
+      console.error('Fehler beim Laden des Profils:', error);
       
       // Zeige Fehlermeldung dem Benutzer
       const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';

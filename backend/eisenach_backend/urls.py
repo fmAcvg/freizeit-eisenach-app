@@ -26,7 +26,15 @@ urlpatterns = [
     path('api/', include('api.urls')),  # Alle API-Endpunkte
 ]
 
-# Media-Dateien und Static Files in Development-Modus servieren
+# Media-Dateien und Static Files servieren
+# Hinweis: In Production sollte normalerweise ein Webserver (Nginx) oder Cloud-Storage verwendet werden
+# Für Render servieren wir Media-Dateien direkt über Django
 if settings.DEBUG:
+    # Development: Media und Static über Django servieren
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+else:
+    # Production: Media-Dateien auch servieren (für Render notwendig)
+    # ACHTUNG: Auf Render sind Media-Dateien nicht persistent - sie werden bei jedem Deployment gelöscht!
+    # Für Production sollte ein Cloud-Storage-Service (S3, Cloudinary, etc.) verwendet werden
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

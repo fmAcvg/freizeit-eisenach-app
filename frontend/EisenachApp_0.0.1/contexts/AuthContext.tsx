@@ -46,35 +46,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedUser = await AsyncStorage.getItem('user_data');
 
       if (!storedToken || !storedUser) {
-        console.log('🔓 Keine gespeicherten Anmeldedaten gefunden');
+        console.log('Keine gespeicherten Anmeldedaten gefunden');
         setToken(null);
         setUser(null);
         return;
       }
 
       try {
-        console.log('🔐 Validiere gespeichertes Token...');
+        console.log('Validiere gespeichertes Token...');
         const current = await getCurrentUser();
         if (current) {
-          console.log('✅ Token gültig, Benutzer angemeldet:', current.username);
+          console.log('Token gültig, Benutzer angemeldet:', current.username);
           setToken(storedToken);
           setUser(current);
         } else {
-          console.log('❌ Token ungültig, Anmeldedaten werden gelöscht');
+          console.log('Token ungültig, Anmeldedaten werden gelöscht');
           await AsyncStorage.removeItem('auth_token');
           await AsyncStorage.removeItem('user_data');
           setToken(null);
           setUser(null);
         }
       } catch (e) {
-        console.error('❌ Fehler bei Token-Validierung:', e);
+        console.error('Fehler bei Token-Validierung:', e);
         await AsyncStorage.removeItem('auth_token');
         await AsyncStorage.removeItem('user_data');
         setToken(null);
         setUser(null);
       }
     } catch (error) {
-      console.error('❌ Fehler beim Laden der Auth-Daten:', error);
+      console.error('Fehler beim Laden der Auth-Daten:', error);
       setToken(null);
       setUser(null);
     } finally {

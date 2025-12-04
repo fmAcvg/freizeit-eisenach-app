@@ -54,6 +54,15 @@ DEV_CONFIG = {
         'http://192.168.2.120:3000',  # web-frontend port
         'http://192.168.2.120:8081',  # metro web
         'exp://192.168.2.120:8081',   # expo aufm handy
+        'https://freizeit-eisenach-app-1.onrender.com', # Render Frontend
+    ],
+
+    # csrf: vertrauenswürdige origins für POST requests (wichtig für admin login)
+    'csrf_trusted_origins': [
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+        'http://192.168.2.120:8000',
+        'https://freizeit-eisenach-app-1.onrender.com',
     ],
 
     # hosts, unter denen das backend erreichbar ist
@@ -62,6 +71,7 @@ DEV_CONFIG = {
         '127.0.0.1',
         '192.168.2.120',  # 192er adresse immer erlauben
         '0.0.0.0',
+        '.onrender.com', # Render domains erlauben
     ],
 }
 
@@ -96,8 +106,11 @@ if os.getenv('ADMIN_USERNAME'):
 if os.getenv('ADMIN_EMAIL'):
     ADMIN_CONFIG['email'] = os.getenv('ADMIN_EMAIL')
 
-if os.getenv('DEBUG') == 'False':
-    DEV_CONFIG['debug'] = False
+# DEBUG aus Umgebungsvariablen robust auslesen
+# Akzeptiert: 1/true/yes/on => True, 0/false/no/off => False
+_env_debug = os.getenv('DEBUG')
+if _env_debug is not None:
+    DEV_CONFIG['debug'] = str(_env_debug).strip().lower() in ('1', 'true', 'yes', 'on')
 
 # einfache prüfung damit wir uns nicht mit blöden typos selbst ärgern
 def validate_config():

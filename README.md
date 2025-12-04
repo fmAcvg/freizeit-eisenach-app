@@ -33,7 +33,14 @@ Nichtkommerzielle Jugendplattform zum Thema „Aktuelle und zukünftige Stadtent
 - `start-app.bat`: Windows-Hilfsskript (startet Backend, prüft Health, startet Expo)
 
 ### Wichtige URLs
-- API: `http://<PC-IP>:8000/api/` (z. B. `…/api/health/`)
+
+**Live-Demo (Production):**
+- API: `https://freizeit-eisenach-app-1.onrender.com/api/` (z. B. `https://freizeit-eisenach-app-1.onrender.com/api/health/`)
+- API Root: `https://freizeit-eisenach-app-1.onrender.com/api/` (zeigt alle verfügbaren Endpunkte)
+- **Test:** Öffne `https://freizeit-eisenach-app-1.onrender.com/api/health/` im Browser um die API-Verbindung zu testen
+
+**Lokale Entwicklung:**
+- API: `http://<PC-IP>:8000/api/` (z. B. `http://192.168.2.120:8000/api/health/`)
 - Admin klassisch (Login): `http://<PC-IP>:8000/admin-classic/`
 - Custom Admin-Dashboard: `http://<PC-IP>:8000/admin/` (leitet bei Bedarf automatisch zum klassischen Login weiter)
 - Medien: `http://<PC-IP>:8000/media/...`
@@ -72,7 +79,11 @@ Mit Docker:
    npm install
    npm start
    ```
-   Expo im LAN-Modus nutzen (Gerät im gleichen WLAN). Die App ermittelt die Host-IP automatisch aus der Expo-Umgebung.
+   **Wichtig:** 
+   - Expo im LAN-Modus nutzen (Gerät im gleichen WLAN)
+   - Die App ermittelt die Host-IP automatisch aus der Expo-Umgebung
+   - Falls die API-URL nicht automatisch erkannt wird, kann sie in `frontend/EisenachApp_0.0.1/config/api.ts` manuell angepasst werden
+   - **Für die Live-Demo (Production):** Die API-URL ist bereits in `frontend/EisenachApp_0.0.1/config/api.ts` auf `https://freizeit-eisenach-app-1.onrender.com/api` gesetzt
 
 Alternativ: `start-app.bat` im Projektwurzelverzeichnis ausführen (Windows). Das Skript:
 - startet das Backend,

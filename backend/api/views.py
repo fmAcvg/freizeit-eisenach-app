@@ -315,7 +315,12 @@ class EventParticipantListCreateView(generics.ListCreateAPIView):
             if current >= event.max_guests:
                 return Response({'error': 'Dieses Event ist bereits voll.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = self.get_serializer(data={})
+        # Status prüfen: Nur veröffentlichte Events erlauben
+        if event.status != 'published':
+            return Response({'error': 'Dieses Event ist nicht verfügbar.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Serializer mit leeren Daten (user und event werden in save() gesetzt)
+        serializer = self.get_serializer(data=request.data if request.data else {})
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user, event=event)
         headers = self.get_success_headers(serializer.data)
